@@ -11,27 +11,25 @@ p{margin:0.5em 0}
 .nav{display:flex;flex-wrap:wrap;gap:16px;margin:1em 0}
 input[type=search]{box-sizing:border-box;flex:1;min-width:0;font:inherit;padding:6px}
 .toolbar{display:flex;align-items:center;gap:8px;margin:1em 0}
-button,select{font:inherit;flex-shrink:0}
-#status{margin:0.5em 0}
-#status:empty{display:none}
+button{font:inherit;flex-shrink:0}
+th button{border:0;background:none;padding:0;color:inherit;cursor:pointer;white-space:nowrap}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 th,td{text-align:left;vertical-align:top;padding:8px 6px;border-bottom:1px solid #ddd;overflow-wrap:anywhere}
-th:nth-child(1){width:35%}th:nth-child(2){width:25%}th:nth-child(3){width:7%}th:nth-child(4){width:33%}
+th:nth-child(1){width:33%}th:nth-child(2){width:25%}th:nth-child(3){width:9%}th:nth-child(4){width:33%}
 .detail{font-size:0.8em}
 .id{font:12px/1.6 monospace;overflow-wrap:anywhere}
 .time{white-space:nowrap}
 .empty{text-align:center;padding:24px}
 #scroll-sentinel{overflow-anchor:none}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-@media(max-width:640px){body{margin:20px auto;font-size:16px}.identifiers{display:none}th:nth-child(1){width:50%}th:nth-child(2){width:35%}th:nth-child(3){width:15%}}
+@media(max-width:640px){body{margin:20px auto;font-size:16px}.identifiers{display:none}th:nth-child(1){width:45%}th:nth-child(2){width:35%}th:nth-child(3){width:20%}}
 </style>
 </head>
 <body><main>
 <header><div><p id="synced"></p></div><nav class="nav" aria-label="Links"><a id="collection" href="https://musicbrainz.org/collection/4cad0217-1cbe-43ae-b148-afa5afad7625" target="_blank" rel="noopener">MusicBrainz collection ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs" target="_blank" rel="noopener">Repository ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs/actions/workflows/sync.yml" target="_blank" rel="noopener">Refresh ↗</a></nav></header>
-<div class="toolbar"><input id="query" type="search" aria-label="Search songs" placeholder="Song, artist, ISRC, or MusicBrainz ID…" autocomplete="off" spellcheck="false"><label class="visually-hidden" for="sort">Sort results</label><select id="sort"><option value="title">Song A–Z</option><option value="artist">Artist A–Z</option></select><button id="download" type="button">Download CSV</button></div>
-<div id="status" role="status" aria-live="polite"></div>
-<div class="table-wrap"><table><thead><tr><th scope="col">Song</th><th scope="col">Artist</th><th scope="col">Length</th><th scope="col" class="identifiers">Identifiers</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="toolbar"><input id="query" type="search" aria-label="Search songs" placeholder="Song, artist, ISRC, or MusicBrainz ID…" autocomplete="off" spellcheck="false"><button id="download" type="button">Download CSV</button></div>
+<div class="table-wrap"><table><thead><tr><th scope="col" aria-sort="ascending"><button type="button" data-sort="title">Song<span aria-hidden="true"> ↑</span></button></th><th scope="col" aria-sort="none"><button type="button" data-sort="artist">Artist<span aria-hidden="true"></span></button></th><th scope="col" aria-sort="none"><button type="button" data-sort="length_ms">Length<span aria-hidden="true"></span></button></th><th scope="col" class="identifiers" aria-sort="none"><button type="button" data-sort="recording_mbid" title="Sort by recording MBID">Identifiers<span aria-hidden="true"></span></button></th></tr></thead><tbody id="rows"></tbody></table></div>
 <div id="scroll-sentinel" aria-hidden="true" style="height:1px"></div>
 </main><script id="collection-data" type="application/json"><!-- COLLECTION_DATA --></script>
 <script>
@@ -39,15 +37,17 @@ th:nth-child(1){width:35%}th:nth-child(2){width:25%}th:nth-child(3){width:7%}th:
 const data=JSON.parse(document.getElementById('collection-data').textContent);
 const normalize=s=>String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase();
 const songs=data.songs.map(song=>({...song,search:normalize([song.title,song.artist,song.isrcs,song.recording_mbid,song.artist_mbids,song.work_mbids,song.works,song.disambiguation].join(' '))}));
-const byId=id=>document.getElementById(id);let filtered=songs,rendered=0;const initialRows=40;let timer;
+const byId=id=>document.getElementById(id);let filtered=songs,rendered=0;const initialRows=40;let timer;const sortState={key:'title',ascending:true};
 byId('synced').textContent=`${data.count.toLocaleString()} recordings · Updated ${new Date(data.synced_at).toLocaleString()}`;
 if(location.protocol==='https:'||location.protocol==='http:')fetch('sync-status.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(s=>{if(s)byId('synced').textContent=`${data.count.toLocaleString()} recordings · Checked ${new Date(s.checked_at).toLocaleString()}`;}).catch(()=>{});
 function tokens(query){return [...normalize(query).matchAll(/"([^"]+)"|(\S+)/g)].map(m=>m[1]||m[2]);}
 function cell(text,cls){const td=document.createElement('td');td.textContent=text;if(cls)td.className=cls;return td;}
 function length(ms){if(ms==null)return '—';const secs=Math.round(ms/1000);return `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;}
-function apply(){const terms=tokens(byId('query').value);filtered=songs.filter(s=>terms.every(t=>s.search.includes(t)));const sort=byId('sort').value;filtered.sort((a,b)=>a[sort].localeCompare(b[sort],undefined,{sensitivity:'base'})||a.title.localeCompare(b.title)||a.recording_mbid.localeCompare(b.recording_mbid));rendered=0;byId('rows').replaceChildren();byId('scroll-sentinel').hidden=false;render(initialRows);fillViewport();}
-function render(count=1){const rows=byId('rows');const end=Math.min(rendered+count,filtered.length);const fragment=document.createDocumentFragment();for(const s of filtered.slice(rendered,end)){const tr=document.createElement('tr'),title=cell('');const a=document.createElement('a');a.href=`https://musicbrainz.org/recording/${s.recording_mbid}`;a.textContent=s.title;a.className='song';a.target='_blank';a.rel='noopener';title.append(a);if(s.disambiguation||s.video){const note=document.createElement('div');note.className='detail';note.textContent=[s.disambiguation,s.video?'Video':''].filter(Boolean).join(' · ');title.append(note);}tr.append(title,cell(s.artist),cell(length(s.length_ms),'time'));const ids=cell('','identifiers');const mb=document.createElement('div');mb.className='id';mb.textContent='MBID: '+s.recording_mbid;ids.append(mb);if(s.isrcs){const isrc=document.createElement('div');isrc.className='detail';isrc.textContent=`ISRC: ${s.isrcs}`;ids.append(isrc);}tr.append(ids);fragment.append(tr);}rows.append(fragment);rendered=end;if(!filtered.length&&!rows.children.length){const tr=document.createElement('tr'),td=cell('No songs match. Try fewer words or another spelling.','empty');td.colSpan=4;tr.append(td);rows.append(tr);}byId('status').textContent=byId('query').value.trim()?`${filtered.length.toLocaleString()} ${filtered.length===1?'match':'matches'}`:'';byId('scroll-sentinel').hidden=rendered>=filtered.length;byId('download').disabled=!filtered.length;}
-byId('query').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(apply,120);});byId('sort').addEventListener('change',apply);
+function compareSongs(a,b){const key=sortState.key,direction=sortState.ascending?1:-1;let primary;if(key==='length_ms'){if(a[key]==null&&b[key]!=null)return 1;if(a[key]!=null&&b[key]==null)return -1;primary=(a[key]??0)-(b[key]??0);}else primary=a[key].localeCompare(b[key],undefined,{sensitivity:'base'});return direction*(primary||a.title.localeCompare(b.title)||a.recording_mbid.localeCompare(b.recording_mbid));}
+function updateSortHeaders(){document.querySelectorAll('th button[data-sort]').forEach(button=>{const active=button.dataset.sort===sortState.key;button.closest('th').setAttribute('aria-sort',active?(sortState.ascending?'ascending':'descending'):'none');button.querySelector('span').textContent=active?(sortState.ascending?' ↑':' ↓'):'';});}
+function apply(){const terms=tokens(byId('query').value);filtered=songs.filter(s=>terms.every(t=>s.search.includes(t)));filtered.sort(compareSongs);updateSortHeaders();rendered=0;byId('rows').replaceChildren();byId('scroll-sentinel').hidden=false;render(initialRows);fillViewport();}
+function render(count=1){const rows=byId('rows');const end=Math.min(rendered+count,filtered.length);const fragment=document.createDocumentFragment();for(const s of filtered.slice(rendered,end)){const tr=document.createElement('tr'),title=cell('');const a=document.createElement('a');a.href=`https://musicbrainz.org/recording/${s.recording_mbid}`;a.textContent=s.title;a.className='song';a.target='_blank';a.rel='noopener';title.append(a);if(s.disambiguation||s.video){const note=document.createElement('div');note.className='detail';note.textContent=[s.disambiguation,s.video?'Video':''].filter(Boolean).join(' · ');title.append(note);}tr.append(title,cell(s.artist),cell(length(s.length_ms),'time'));const ids=cell('','identifiers');const mb=document.createElement('div');mb.className='id';mb.textContent='MBID: '+s.recording_mbid;ids.append(mb);if(s.isrcs){const isrc=document.createElement('div');isrc.className='detail';isrc.textContent=`ISRC: ${s.isrcs}`;ids.append(isrc);}tr.append(ids);fragment.append(tr);}rows.append(fragment);rendered=end;if(!filtered.length&&!rows.children.length){const tr=document.createElement('tr'),td=cell('No songs match. Try fewer words or another spelling.','empty');td.colSpan=4;tr.append(td);rows.append(tr);}byId('scroll-sentinel').hidden=rendered>=filtered.length;byId('download').disabled=!filtered.length;}
+byId('query').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(apply,120);});document.querySelectorAll('th button[data-sort]').forEach(button=>button.addEventListener('click',()=>{if(sortState.key===button.dataset.sort)sortState.ascending=!sortState.ascending;else{sortState.key=button.dataset.sort;sortState.ascending=true;}apply();}));
 byId('download').addEventListener('click',()=>{const keys=['title','artist','recording_mbid','artist_mbids','length_ms','isrcs','work_mbids','works','disambiguation','video','musicbrainz_url'];const quote=v=>{let text=String(v??'');if(/^[=+@\-\t\r\n]/.test(text))text="'"+text;return '"'+text.replaceAll('"','""')+'"';};const csv='\ufeff'+[keys.map(quote).join(','),...filtered.map(s=>keys.map(k=>quote(s[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='liked-songs-search.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 function fillViewport(){while(rendered<filtered.length&&document.documentElement.getBoundingClientRect().bottom<=document.documentElement.clientHeight+100)render();}
 window.addEventListener('scroll',fillViewport,{passive:true});
