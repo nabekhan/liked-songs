@@ -1,0 +1,57 @@
+name: Sync Liked Songs
+on:
+  schedule:
+    - cron: '23 12 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['scripts/**', 'config.json', '.github/workflows/sync.yml', 'data/**']
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: liked-songs-sync-and-pages
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Verify sync behavior
+        run: python -m unittest discover -s scripts -p 'test_*.py'
+      - name: Download and verify collection
+        if: github.event_name != 'push'
+        env:
+          MUSICBRAINZ_CLIENT_ID: ${{ secrets.MUSICBRAINZ_CLIENT_ID }}
+          MUSICBRAINZ_CLIENT_SECRET: ${{ secrets.MUSICBRAINZ_CLIENT_SECRET }}
+          MUSICBRAINZ_REFRESH_TOKEN: ${{ secrets.MUSICBRAINZ_REFRESH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/sync.py
+      - name: Build searchable page on code changes
+        if: github.event_name == 'push'
+        run: python scripts/sync.py --build-only
+      - name: Commit verified snapshot
+        if: github.event_name != 'push'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data site
+          if ! git diff --cached --quiet; then
+            git commit -m 'Sync MusicBrainz Liked Songs'
+            git push
+          fi
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - name: Publish searchable page
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
