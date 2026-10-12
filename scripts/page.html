@@ -9,12 +9,11 @@
 </style>
 </head>
 <body><main>
-<header><div><h1>Liked Songs</h1><p id="synced"></p></div><nav class="nav" aria-label="Links"><a id="collection" href="https://musicbrainz.org/collection/4cad0217-1cbe-43ae-b148-afa5afad7625" target="_blank" rel="noopener">MusicBrainz collection ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs" target="_blank" rel="noopener">Repository ↗</a></nav></header>
+<header><div><h1>Liked Songs</h1><p id="synced"></p></div><nav class="nav" aria-label="Links"><a id="collection" href="https://musicbrainz.org/collection/4cad0217-1cbe-43ae-b148-afa5afad7625" target="_blank" rel="noopener">MusicBrainz collection ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs" target="_blank" rel="noopener">Repository ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs/actions/workflows/sync.yml" target="_blank" rel="noopener">Refresh ↗</a></nav></header>
 <section class="search-wrap" aria-label="Search collection"><input id="query" type="search" aria-label="Search songs" placeholder="Song, artist, ISRC, or MusicBrainz ID…" autocomplete="off" spellcheck="false"></section>
 <div class="toolbar"><div id="status" role="status" aria-live="polite"></div><div class="controls"><label class="visually-hidden" for="sort">Sort results</label><select id="sort"><option value="title">Song A–Z</option><option value="artist">Artist A–Z</option></select><button id="download" type="button">Download results CSV</button></div></div>
 <div class="table-wrap"><table><thead><tr><th scope="col">Song</th><th scope="col">Artist</th><th scope="col">Length</th><th scope="col" class="identifiers">Identifiers</th></tr></thead><tbody id="rows"></tbody></table></div>
 <div id="scroll-sentinel" aria-hidden="true" style="height:1px"></div>
-<footer>Mirrors the recordings in the MusicBrainz collection. Updates daily. <a href="https://github.com/nabekhan/musicbrainz-liked-songs/actions/workflows/sync.yml" target="_blank" rel="noopener">Sync now / check updates ↗</a></footer>
 </main><script id="collection-data" type="application/json"><!-- COLLECTION_DATA --></script>
 <script>
 'use strict';
