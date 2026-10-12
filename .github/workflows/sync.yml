@@ -34,7 +34,7 @@ jobs:
           MUSICBRAINZ_CLIENT_SECRET: ${{ secrets.MUSICBRAINZ_CLIENT_SECRET }}
           MUSICBRAINZ_REFRESH_TOKEN: ${{ secrets.MUSICBRAINZ_REFRESH_TOKEN }}
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/sync.py
+        run: python scripts/sync.py --refresh-metadata
       - name: Build searchable page on code changes
         if: github.event_name == 'push'
         run: python scripts/sync.py --build-only

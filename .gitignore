@@ -6,4 +6,6 @@ auth.json
 *.log
 .sync.lock
 .cache/
+/data/collection.json
+/data/liked-songs.csv
 

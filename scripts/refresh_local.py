@@ -5,6 +5,7 @@ import fcntl
 from pathlib import Path
 import subprocess
 import sys
+from sync import materialize_compressed_exports
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,6 +20,7 @@ def main():
         if git('branch', '--show-current').stdout.strip() != 'main':
             print('Local refresh skipped: checkout is not on main.'); return
         git('pull', '--ff-only', '--no-rebase', 'origin', 'main')
+        materialize_compressed_exports()
         print(datetime.datetime.now().isoformat(), 'Local copy refreshed from GitHub.')
 
 if __name__ == '__main__':

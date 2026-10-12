@@ -3,11 +3,13 @@
 import argparse
 import csv
 import datetime as dt
+import gzip
 import hashlib
 import io
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 import time
@@ -18,6 +20,13 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 AUTH_PATH = Path.home() / '.config/musicbrainz-liked-songs/auth.json'
 BASE = 'https://musicbrainz.org'
+CSV_BASE_FIELDS = ['title', 'artist', 'recording_mbid', 'artist_mbids', 'length_ms', 'isrcs', 'work_mbids', 'works', 'disambiguation', 'video', 'musicbrainz_url']
+METADATA_INCLUDES = '+'.join([
+    'artist-credits', 'isrcs', 'aliases', 'annotation', 'tags', 'genres', 'ratings',
+    'area-rels', 'artist-rels', 'event-rels', 'genre-rels', 'instrument-rels',
+    'label-rels', 'place-rels', 'recording-rels', 'release-rels',
+    'release-group-rels', 'series-rels', 'url-rels', 'work-rels', 'work-level-rels',
+])
 
 
 def atomic_write(path, text, mode=0o644):
@@ -30,6 +39,41 @@ def atomic_write(path, text, mode=0o644):
         os.replace(name, path)
     finally:
         if os.path.exists(name): os.unlink(name)
+
+
+def atomic_gzip(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(dir=path.parent, prefix='.' + path.name)
+    try:
+        with os.fdopen(fd, 'wb') as output:
+            with gzip.GzipFile(filename='', mode='wb', compresslevel=6, fileobj=output, mtime=0) as compressed:
+                for start in range(0, len(text), 1024 * 1024):
+                    compressed.write(text[start:start + 1024 * 1024].encode('utf-8'))
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name): os.unlink(name)
+
+
+def load_snapshot():
+    compressed = ROOT / 'data/collection.json.gz'
+    if compressed.exists():
+        with gzip.open(compressed, 'rt', encoding='utf-8') as source: return json.load(source)
+    return json.loads((ROOT / 'data/collection.json').read_text())
+
+
+def materialize_compressed_exports():
+    for filename in ('collection.json', 'liked-songs.csv'):
+        path = ROOT / 'data' / filename
+        compressed = path.with_suffix(path.suffix + '.gz')
+        if not compressed.exists(): continue
+        fd, name = tempfile.mkstemp(dir=path.parent, prefix='.' + path.name)
+        try:
+            os.fchmod(fd, 0o644)
+            with os.fdopen(fd, 'wb') as output, gzip.open(compressed, 'rb') as source:
+                shutil.copyfileobj(source, output, 1024 * 1024)
+            os.replace(name, path)
+        finally:
+            if os.path.exists(name): os.unlink(name)
 
 
 class MusicBrainz:
@@ -66,7 +110,7 @@ class MusicBrainz:
         retried_auth = False
         for attempt in range(6):
             time.sleep(max(0, 1.1 - (time.monotonic() - self.last_request)))
-            headers = {'User-Agent': self.config['user_agent'], 'Accept': 'application/json'}
+            headers = {'User-Agent': self.config['user_agent'], 'Accept': 'application/json', 'Cache-Control': 'no-cache'}
             if authenticated: headers['Authorization'] = 'Bearer ' + self.auth['access_token']
             payload = None
             if body is not None:
@@ -98,11 +142,11 @@ def read_collection(api, config, full_metadata=True):
     offset = 0
     while offset < count:
         params = {'collection': cid, 'limit': 100, 'offset': offset, 'fmt': 'json'}
-        if full_metadata: params['inc'] = 'artist-credits+isrcs+work-rels'
+        if full_metadata: params['inc'] = METADATA_INCLUDES
         page = api.request('/ws/2/recording', params)
         rows = page.get('recordings', [])
         if page.get('recording-count') != count or not rows or page.get('recording-offset') != offset:
-            raise RuntimeError('Collection changed or pagination was incomplete. Retry sync.')
+            raise RuntimeError(f'Collection changed or pagination was incomplete (expected count {count}, received {page.get("recording-count")}; expected offset {offset}, received {page.get("recording-offset")}; page size {len(rows)}). Retry sync.')
         recordings.extend(rows); offset += len(rows)
         print(f'Downloaded {offset:,} / {count:,} recordings', flush=True)
     end = api.request('/ws/2/collection/' + cid, {'fmt': 'json'})
@@ -115,7 +159,7 @@ def read_collection(api, config, full_metadata=True):
 def flatten_recording(r):
     credits = r.get('artist-credit', [])
     works = {rel['work']['id']: rel['work']['title'] for rel in r.get('relations', []) if rel.get('target-type') == 'work' and 'work' in rel}
-    return {
+    row = {
         'recording_mbid': r['id'], 'title': r['title'],
         'artist': ''.join(c.get('name', c.get('artist', {}).get('name', '')) + c.get('joinphrase', '') for c in credits),
         'artist_mbids': '; '.join(c['artist']['id'] for c in credits if 'artist' in c),
@@ -124,9 +168,68 @@ def flatten_recording(r):
         'disambiguation': r.get('disambiguation', ''), 'video': bool(r.get('video', False)),
         'musicbrainz_url': 'https://musicbrainz.org/recording/' + r['id'],
     }
+    represented = {'id', 'title', 'artist-credit', 'length', 'isrcs', 'relations', 'disambiguation', 'video'}
+    for key in sorted(r.keys() - represented):
+        value = r[key]
+        row[key.replace('-', '_')] = json_cell(value) if isinstance(value, (dict, list)) else value
+    add_metadata_columns(row, 'artist_credit', credits, {'name', 'joinphrase', 'artist'})
+    add_metadata_columns(row, 'artist', [c.get('artist', {}) for c in credits], {'id'})
+    relations = r.get('relations', [])
+    add_metadata_columns(row, 'relationship', relations, {'work'})
+    add_metadata_columns(row, 'work', [rel.get('work', {}) for rel in relations], {'id', 'title'})
+    if any('work' in rel for rel in relations):
+        # Unlike work_mbids, this retains repeated targets in relationship order.
+        row['relationship_work_mbids'] = json_cell([rel.get('work', {}).get('id') for rel in relations])
+    return row
+
+
+def json_cell(value):
+    return json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+
+
+def add_metadata_columns(row, prefix, objects, represented):
+    keys = set().union(*(obj.keys() for obj in objects)) - represented
+    for key in sorted(keys):
+        # Parallel JSON arrays preserve missing values and nested structures.
+        row[prefix + '_' + key.replace('-', '_')] = json_cell([obj.get(key) for obj in objects])
+
+
+def csv_fields(flat):
+    extra = set().union(*(row.keys() for row in flat)) - set(CSV_BASE_FIELDS)
+    return CSV_BASE_FIELDS + sorted(extra)
+
+
+def flatten_snapshot(data):
+    flat = [flatten_recording(r) for r in data['recordings']]
+    collection = data.get('collection_metadata', {
+        'id': data['collection_id'], 'name': data['collection_name'],
+        'editor': data['collection_owner'], 'recording-count': data['count'],
+    })
+    for row in flat:
+        for key, value in collection.items():
+            row['collection_' + key.replace('-', '_')] = json_cell(value) if isinstance(value, (dict, list)) else value
+    flat.sort(key=lambda r: (r['title'].casefold(), r['artist'].casefold(), r['recording_mbid']))
+    return flat
+
+
+def build_exports(data=None):
+    if data is None: data = load_snapshot()
+    flat = flatten_snapshot(data)
+    out = io.StringIO(newline='')
+    writer = csv.DictWriter(out, fieldnames=csv_fields(flat)); writer.writeheader()
+    writer.writerows({k: csv_cell(v) for k, v in row.items()} for row in flat)
+    csv_text = '\ufeff' + out.getvalue()
+    atomic_write(ROOT / 'data/liked-songs.csv', csv_text)
+    atomic_gzip(ROOT / 'data/liked-songs.csv.gz', csv_text)
+    # Keep download metadata separate so the searchable page stays small.
+    for prefix in '0123456789abcdef':
+        rows = [row for row in flat if row['recording_mbid'].startswith(prefix)]
+        atomic_write(ROOT / 'site/csv' / (prefix + '.json'), json_cell(rows) + '\n')
+    build_page(data, flat)
 
 
 def csv_cell(value):
+    if isinstance(value, bool): return 'true' if value else 'false'
     if isinstance(value, str) and value.startswith(('=', '+', '-', '@', '\t', '\r', '\n')):
         return "'" + value
     return value
@@ -140,28 +243,25 @@ def write_snapshot(metadata, recordings, config):
         'collection_owner': config['owner'], 'synced_at': dt.datetime.now(dt.timezone.utc).isoformat(),
         'count': len(recordings), 'membership_sha256': hashlib.sha256('\n'.join(ids).encode()).hexdigest(),
         'metadata_refreshed_at': config.get('metadata_refreshed_at', dt.datetime.now(dt.timezone.utc).isoformat()),
+        'collection_metadata': metadata,
+        'metadata_includes': METADATA_INCLUDES,
         'recordings': recordings,
     }
-    flat = [flatten_recording(r) for r in recordings]
-    flat.sort(key=lambda r: (r['title'].casefold(), r['artist'].casefold(), r['recording_mbid']))
-    out = io.StringIO(newline='')
-    fields = list(flatten_recording({'id': '', 'title': ''}))
-    writer = csv.DictWriter(out, fieldnames=fields); writer.writeheader()
-    writer.writerows({k: csv_cell(v) for k, v in row.items()} for row in flat)
-    atomic_write(ROOT / 'data/collection.json', json.dumps(data, ensure_ascii=False, indent=2) + '\n')
-    atomic_write(ROOT / 'data/liked-songs.csv', '\ufeff' + out.getvalue())
-    build_page(data, flat)
+    snapshot = json.dumps(data, ensure_ascii=False, indent=2) + '\n'
+    atomic_write(ROOT / 'data/collection.json', snapshot)
+    atomic_gzip(ROOT / 'data/collection.json.gz', snapshot)
+    build_exports(data)
     print(f'Verified and saved {len(recordings):,} recordings. Membership SHA-256: {data["membership_sha256"]}')
 
 
 def synchronize(api, config, refresh_metadata=False):
     cached_path = ROOT / 'data/collection.json'
-    cached = json.loads(cached_path.read_text()) if cached_path.exists() else None
+    cached = load_snapshot() if cached_path.exists() or (ROOT / 'data/collection.json.gz').exists() else None
     if cached and (cached['collection_id'] != config['collection_id'] or cached['collection_owner'] != config['owner']):
         raise RuntimeError('Saved snapshot belongs to a different collection.')
     now = dt.datetime.now(dt.timezone.utc)
     age = (now - dt.datetime.fromisoformat(cached.get('metadata_refreshed_at', cached['synced_at']))).total_seconds() if cached else float('inf')
-    full_metadata = refresh_metadata or age >= 7 * 86400
+    full_metadata = refresh_metadata or age >= 7 * 86400 or not cached or cached.get('metadata_includes') != METADATA_INCLUDES
     metadata, current = read_collection(api, config, full_metadata=full_metadata)
     old = {r['id']: r for r in cached['recordings']} if cached else {}
     current_ids = {r['id'] for r in current}
@@ -172,11 +272,11 @@ def synchronize(api, config, refresh_metadata=False):
     else:
         records = {rid: old[rid] for rid in current_ids if rid in old}
         for rid in sorted(added):
-            r = api.request('/ws/2/recording/' + rid, {'inc': 'artist-credits+isrcs+work-rels', 'fmt': 'json'})
+            r = api.request('/ws/2/recording/' + rid, {'inc': METADATA_INCLUDES, 'fmt': 'json'})
             if r.get('id') != rid: raise RuntimeError('Recording merged during sync. Retry sync.')
             records[rid] = r
         recordings = sorted(records.values(), key=lambda r: r['id'])
-    changed = not cached or recordings != cached['recordings'] or metadata.get('name') != cached['collection_name']
+    changed = not cached or recordings != cached['recordings'] or metadata != cached.get('collection_metadata') or cached.get('metadata_includes') != METADATA_INCLUDES
     if changed or full_metadata:
         next_config = dict(config, metadata_refreshed_at=now.isoformat() if full_metadata else cached['metadata_refreshed_at'])
         write_snapshot(metadata, recordings, next_config)
@@ -190,10 +290,18 @@ def synchronize(api, config, refresh_metadata=False):
 
 
 def build_page(data=None, flat=None):
-    if data is None: data = json.loads((ROOT / 'data/collection.json').read_text())
-    if flat is None: flat = sorted((flatten_recording(r) for r in data['recordings']), key=lambda r: (r['title'].casefold(), r['artist'].casefold(), r['recording_mbid']))
+    if data is None: data = load_snapshot()
+    if flat is None: flat = flatten_snapshot(data)
     payload = {k: data[k] for k in ('collection_id', 'collection_name', 'collection_owner', 'synced_at', 'count')}
-    payload['songs'] = flat
+    payload['songs'] = []
+    for row in flat:
+        song = {key: row[key] for key in CSV_BASE_FIELDS}
+        song['first_release_date'] = row.get('first_release_date') or ''
+        languages = {code for codes in json.loads(row.get('work_languages', '[]')) if isinstance(codes, list) for code in codes if code}
+        languages.update(code for code in json.loads(row.get('work_language', '[]')) if code)
+        song['languages'] = sorted(languages)
+        payload['songs'].append(song)
+    payload['csv_fields'] = csv_fields(flat)
     # Untrusted names must not terminate the embedded JSON script element.
     encoded = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
     template = (ROOT / 'scripts/page.html').read_text()
@@ -203,10 +311,10 @@ def build_page(data=None, flat=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--build-only', action='store_true', help='Rebuild the page from the existing snapshot, without network access.')
+    parser.add_argument('--build-only', action='store_true', help='Rebuild the page and CSV exports from the existing snapshot, without network access.')
     parser.add_argument('--refresh-metadata', action='store_true', help='Refresh every recording, rather than reusing cached metadata.')
     args = parser.parse_args()
-    if args.build_only: return build_page()
+    if args.build_only: return build_exports()
     config = json.loads((ROOT / 'config.json').read_text())
     api = MusicBrainz(config)
     synchronize(api, config, args.refresh_metadata)
