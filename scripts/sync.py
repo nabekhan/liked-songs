@@ -45,7 +45,7 @@ class MusicBrainz:
         elif AUTH_PATH.exists():
             self.auth = json.loads(AUTH_PATH.read_text())
         else:
-            raise RuntimeError('MusicBrainz credentials are missing. See README.md.')
+            raise RuntimeError('MusicBrainz credentials are missing. Run python3 scripts/authorize.py.')
 
     def refresh(self):
         body = {k: self.auth[k] for k in ('client_id', 'client_secret', 'refresh_token')}
