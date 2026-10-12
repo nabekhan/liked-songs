@@ -2,14 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <title>Liked Songs · Nabeel</title>
 <style>
-:root{font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#203a38;background:#f5f5ef;--line:#d9e1db;--muted:#5c716b;--accent:#176f59;--surface:#fffef9}*{box-sizing:border-box}body{margin:0}main{max-width:1180px;margin:auto;padding:56px 24px}a{color:var(--accent);text-underline-offset:3px}header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:32px}.eyebrow{text-transform:uppercase;letter-spacing:.15em;font-size:12px;color:var(--muted)}h1{font-size:clamp(36px,6vw,64px);letter-spacing:-.05em;line-height:1.1;margin:10px 0 16px}p{margin:8px 0;color:var(--muted)}.nav{display:flex;gap:18px;flex-wrap:wrap;padding-top:10px;font-size:14px}.search-wrap{background:var(--surface);border:1px solid var(--line);padding:22px;border-radius:18px;margin-bottom:24px}label{display:block;font-weight:600;margin-bottom:9px}input[type=search]{width:100%;font:inherit;font-size:20px;color:inherit;background:transparent;border:1px solid var(--line);padding:14px 16px;border-radius:10px}input:focus,button:focus-visible,select:focus-visible{outline:3px solid #73c8a4;outline-offset:3px}.help{font-size:13px;margin:10px 0 0}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px}.controls{display:flex;gap:12px;align-items:center}button,select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--surface);color:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:default}.table-wrap{overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}table{width:100%;border-collapse:collapse;table-layout:fixed}th:nth-child(1){width:36%}th:nth-child(2){width:26%}th:nth-child(3){width:9%}th:nth-child(4){width:29%}td{overflow-wrap:anywhere}#scroll-sentinel{overflow-anchor:none}th{text-align:left;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:16px 18px;border-bottom:1px solid var(--line)}td{padding:13px 18px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}.song{font-weight:600}.detail{font-size:12px;color:var(--muted);margin-top:3px}.id{font:11px ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere}.time{white-space:nowrap;color:var(--muted)}.pager{display:flex;gap:16px;align-items:center;justify-content:center;margin:24px 0}footer{font-size:13px;color:var(--muted);margin-top:32px}.empty{padding:36px;text-align:center}#status{font-size:14px}.visually-hidden{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}@media(max-width:640px){main{padding:30px 14px}header{display:block}.nav{margin-top:20px}td,th{padding:12px}.identifiers{display:none}th:nth-child(1){width:50%}th:nth-child(2){width:35%}th:nth-child(3){width:15%}.search-wrap{padding:16px}.controls{flex-wrap:wrap}}@media(prefers-color-scheme:dark){:root{color:#e0eae2;background:#142320;--line:#344a40;--muted:#9bb5a6;--accent:#83d9b2;--surface:#1b2d27}}
+body{max-width:1000px;margin:40px auto;padding:0 10px;font-size:18px;line-height:1.6;color:#222;background:#fff}
+p{margin:0.5em 0}
+#synced{font-weight:bold}
+.nav{display:flex;flex-wrap:wrap;gap:16px;margin:1em 0}
+.search-wrap{margin:1em 0}
+input[type=search]{box-sizing:border-box;width:100%;font:inherit;padding:6px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:1em 0}
+.controls{display:flex;align-items:center;gap:8px}
+button,select{font:inherit}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{text-align:left;vertical-align:top;padding:8px 6px;border-bottom:1px solid #ddd;overflow-wrap:anywhere}
+th:nth-child(1){width:35%}th:nth-child(2){width:25%}th:nth-child(3){width:7%}th:nth-child(4){width:33%}
+.detail{font-size:0.8em}
+.id{font:12px/1.6 monospace;overflow-wrap:anywhere}
+.time{white-space:nowrap}
+.empty{text-align:center;padding:24px}
+#scroll-sentinel{overflow-anchor:none}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media(max-width:640px){body{margin:20px auto;font-size:16px}.identifiers{display:none}th:nth-child(1){width:50%}th:nth-child(2){width:35%}th:nth-child(3){width:15%}}
 </style>
 </head>
 <body><main>
-<header><div><h1>Liked Songs</h1><p id="synced"></p></div><nav class="nav" aria-label="Links"><a id="collection" href="https://musicbrainz.org/collection/4cad0217-1cbe-43ae-b148-afa5afad7625" target="_blank" rel="noopener">MusicBrainz collection ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs" target="_blank" rel="noopener">Repository ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs/actions/workflows/sync.yml" target="_blank" rel="noopener">Refresh ↗</a></nav></header>
+<header><div><p id="synced"></p></div><nav class="nav" aria-label="Links"><a id="collection" href="https://musicbrainz.org/collection/4cad0217-1cbe-43ae-b148-afa5afad7625" target="_blank" rel="noopener">MusicBrainz collection ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs" target="_blank" rel="noopener">Repository ↗</a><a href="https://github.com/nabekhan/musicbrainz-liked-songs/actions/workflows/sync.yml" target="_blank" rel="noopener">Refresh ↗</a></nav></header>
 <section class="search-wrap" aria-label="Search collection"><input id="query" type="search" aria-label="Search songs" placeholder="Song, artist, ISRC, or MusicBrainz ID…" autocomplete="off" spellcheck="false"></section>
 <div class="toolbar"><div id="status" role="status" aria-live="polite"></div><div class="controls"><label class="visually-hidden" for="sort">Sort results</label><select id="sort"><option value="title">Song A–Z</option><option value="artist">Artist A–Z</option></select><button id="download" type="button">Download CSV</button></div></div>
 <div class="table-wrap"><table><thead><tr><th scope="col">Song</th><th scope="col">Artist</th><th scope="col">Length</th><th scope="col" class="identifiers">Identifiers</th></tr></thead><tbody id="rows"></tbody></table></div>
