@@ -80,6 +80,7 @@ class MusicBrainz:
     def __init__(self, config):
         self.config = config
         self.last_request = 0
+        self.request_count = 0
         env = {k: os.environ.get('MUSICBRAINZ_' + k.upper()) for k in ('client_id', 'client_secret', 'refresh_token')}
         self.from_environment = all(env.values())
         if any(env.values()) and not self.from_environment:
@@ -117,6 +118,7 @@ class MusicBrainz:
                 payload = urllib.parse.urlencode(body).encode()
                 headers['Content-Type'] = 'application/x-www-form-urlencoded'
             self.last_request = time.monotonic()
+            self.request_count += 1
             try:
                 with urllib.request.urlopen(urllib.request.Request(url, data=payload, headers=headers), timeout=45) as r:
                     return json.load(r)
@@ -235,7 +237,7 @@ def csv_cell(value):
     return value
 
 
-def write_snapshot(metadata, recordings, config):
+def write_snapshot(metadata, recordings, config, rebuild_exports=True):
     # No output changes until the entire paginated download has been verified.
     ids = sorted(r['id'] for r in recordings)
     data = {
@@ -250,7 +252,7 @@ def write_snapshot(metadata, recordings, config):
     snapshot = json.dumps(data, ensure_ascii=False, indent=2) + '\n'
     atomic_write(ROOT / 'data/collection.json', snapshot)
     atomic_gzip(ROOT / 'data/collection.json.gz', snapshot)
-    build_exports(data)
+    if rebuild_exports: build_exports(data)
     print(f'Verified and saved {len(recordings):,} recordings. Membership SHA-256: {data["membership_sha256"]}')
 
 
@@ -260,7 +262,8 @@ def synchronize(api, config, refresh_metadata=False):
     if cached and (cached['collection_id'] != config['collection_id'] or cached['collection_owner'] != config['owner']):
         raise RuntimeError('Saved snapshot belongs to a different collection.')
     now = dt.datetime.now(dt.timezone.utc)
-    age = (now - dt.datetime.fromisoformat(cached.get('metadata_refreshed_at', cached['synced_at']))).total_seconds() if cached else float('inf')
+    refreshed_at = cached.get('metadata_refreshed_at', cached['synced_at']) if cached else None
+    age = (now - dt.datetime.fromisoformat(refreshed_at)).total_seconds() if cached else float('inf')
     full_metadata = refresh_metadata or age >= 7 * 86400 or not cached or cached.get('metadata_includes') != METADATA_INCLUDES
     metadata, current = read_collection(api, config, full_metadata=full_metadata)
     old = {r['id']: r for r in cached['recordings']} if cached else {}
@@ -278,14 +281,20 @@ def synchronize(api, config, refresh_metadata=False):
         recordings = sorted(records.values(), key=lambda r: r['id'])
     changed = not cached or recordings != cached['recordings'] or metadata != cached.get('collection_metadata') or cached.get('metadata_includes') != METADATA_INCLUDES
     if changed or full_metadata:
-        next_config = dict(config, metadata_refreshed_at=now.isoformat() if full_metadata else cached['metadata_refreshed_at'])
-        write_snapshot(metadata, recordings, next_config)
+        next_config = dict(config, metadata_refreshed_at=now.isoformat() if full_metadata else refreshed_at)
+        # An unchanged weekly refresh still advances the freshness timestamp,
+        # but need not rebuild the large CSV, download shards, or search page.
+        write_snapshot(metadata, recordings, next_config, rebuild_exports=changed)
     else:
         print('No collection changes; reused all metadata and left JSON, CSV, and search page unchanged.')
-    status = {'checked_at': now.isoformat(), 'count': len(recordings), 'added': len(added), 'removed': len(removed), 'metadata_refreshed': full_metadata, 'content_changed': changed}
+    fetched = len(recordings) if full_metadata else len(added)
+    status = {'checked_at': now.isoformat(), 'count': len(recordings), 'added': len(added), 'removed': len(removed), 'metadata_refreshed': full_metadata, 'metadata_fetched': fetched, 'metadata_reused': len(recordings) - fetched, 'content_changed': changed}
+    if hasattr(api, 'request_count'): status['api_requests'] = api.request_count
     for path in (ROOT / 'data/sync-status.json', ROOT / 'site/sync-status.json'):
         atomic_write(path, json.dumps(status, indent=2) + '\n')
     print(f'Changes: +{len(added)} / -{len(removed)}. Full metadata refresh: {full_metadata}')
+    print(f'Expanded metadata fetched: {fetched:,}; reused: {len(recordings) - fetched:,}.')
+    if 'api_requests' in status: print(f'API requests (including authentication and retries): {status["api_requests"]}')
     return status
 
 

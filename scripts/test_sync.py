@@ -19,6 +19,8 @@ ROWS = [
 
 class FakeAPI:
     def __init__(self, responses): self.responses = iter(responses); self.calls = []
+    @property
+    def request_count(self): return len(self.calls)
     def request(self, *args, **kwargs):
         self.calls.append((args, kwargs))
         return next(self.responses)
@@ -34,9 +36,11 @@ class SyncTests(unittest.TestCase):
             (root / 'data/collection.json').write_text(payload)
             (root / 'data/liked-songs.csv').write_text('existing-csv')
             (root / 'site/index.html').write_text('existing-html')
-            with patch.object(sync, 'read_collection', return_value=(METADATA, ROWS)):
-                status = sync.synchronize(FakeAPI([]), CONFIG)
+            api = FakeAPI([METADATA, {'recording-count': 2, 'recording-offset': 0, 'recordings': [{'id': r['id']} for r in ROWS]}, METADATA])
+            status = sync.synchronize(api, CONFIG)
             self.assertFalse(status['content_changed']); self.assertFalse(status['metadata_refreshed'])
+            self.assertEqual((status['metadata_fetched'], status['metadata_reused'], status['api_requests']), (0, 2, 3))
+            self.assertTrue(all('inc' not in args[1] for args, _ in api.calls))
             self.assertEqual((root / 'data/collection.json').read_text(), payload)
             self.assertEqual((root / 'data/liked-songs.csv').read_text(), 'existing-csv')
             self.assertEqual((root / 'site/index.html').read_text(), 'existing-html')
@@ -45,12 +49,83 @@ class SyncTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
             root = Path(t); (root / 'data').mkdir()
             old = self.cached_data([ROWS[0]])
+            metadata = dict(METADATA, **{'recording-count': 1})
+            old['collection_metadata'] = metadata
             (root / 'data/collection.json').write_text(json.dumps(old))
-            with patch.object(sync, 'read_collection', return_value=(METADATA, [ROWS[1]])), patch.object(sync, 'write_snapshot') as write:
-                status = sync.synchronize(FakeAPI([ROWS[1]]), CONFIG)
+            api = FakeAPI([metadata, {'recording-count': 1, 'recording-offset': 0, 'recordings': [{'id': ROWS[1]['id']}]}, metadata, ROWS[1]])
+            with patch.object(sync, 'write_snapshot') as write:
+                status = sync.synchronize(api, CONFIG)
             self.assertEqual((status['added'], status['removed']), (1, 1))
             self.assertFalse(status['metadata_refreshed'])
             self.assertEqual(write.call_args[0][1], [ROWS[1]])
+            self.assertEqual((status['metadata_fetched'], status['metadata_reused']), (1, 0))
+            self.assertNotIn('inc', api.calls[1][0][1])
+            self.assertEqual(api.calls[-1][0], ('/ws/2/recording/' + ROWS[1]['id'], {'inc': sync.METADATA_INCLUDES, 'fmt': 'json'}))
+
+    def test_deletions_reuse_retained_metadata_without_lookups(self):
+        with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
+            root = Path(t); (root / 'data').mkdir()
+            (root / 'data/collection.json').write_text(json.dumps(self.cached_data(ROWS)))
+            metadata = dict(METADATA, **{'recording-count': 1})
+            api = FakeAPI([metadata, {'recording-count': 1, 'recording-offset': 0, 'recordings': [{'id': ROWS[0]['id']}]}, metadata])
+            with patch.object(sync, 'write_snapshot') as write:
+                status = sync.synchronize(api, CONFIG)
+            self.assertEqual((status['added'], status['removed'], status['metadata_fetched'], status['metadata_reused']), (0, 1, 0, 1))
+            self.assertEqual(len(api.calls), 3)
+            self.assertEqual(write.call_args[0][1], [ROWS[0]])
+
+    def test_failed_new_recording_lookup_preserves_snapshot_and_exports(self):
+        with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
+            root = Path(t); (root / 'data').mkdir(); (root / 'site').mkdir()
+            payload = json.dumps(self.cached_data([ROWS[0]]))
+            existing = {'data/collection.json': payload, 'data/liked-songs.csv': 'existing-csv', 'site/index.html': 'existing-html', 'site/sync-status.json': 'existing-status'}
+            for path, text in existing.items(): (root / path).write_text(text)
+            api = FakeAPI([METADATA, {'recording-count': 2, 'recording-offset': 0, 'recordings': [{'id': r['id']} for r in ROWS]}, METADATA, {'id': 'merged-recording'}])
+            with self.assertRaisesRegex(RuntimeError, 'merged'), patch.object(sync, 'write_snapshot') as write:
+                sync.synchronize(api, CONFIG)
+            write.assert_not_called()
+            for path, text in existing.items(): self.assertEqual((root / path).read_text(), text)
+
+    def test_weekly_refresh_advances_freshness_without_rebuilding_unchanged_exports(self):
+        with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
+            root = Path(t); (root / 'data').mkdir(); (root / 'site/csv').mkdir(parents=True)
+            cached = self.cached_data(ROWS)
+            cached['metadata_refreshed_at'] = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=8)).isoformat()
+            (root / 'data/collection.json').write_text(json.dumps(cached))
+            existing = {'data/liked-songs.csv': b'existing-csv', 'data/liked-songs.csv.gz': b'existing-gzip', 'site/index.html': b'existing-html', 'site/csv/f.json': b'existing-download'}
+            for path, content in existing.items(): (root / path).write_bytes(content)
+            api = FakeAPI([METADATA, {'recording-count': 2, 'recording-offset': 0, 'recordings': ROWS}, METADATA])
+            status = sync.synchronize(api, CONFIG)
+            self.assertTrue(status['metadata_refreshed']); self.assertFalse(status['content_changed'])
+            self.assertEqual((status['metadata_fetched'], status['metadata_reused']), (2, 0))
+            self.assertEqual(api.calls[1][0][1]['inc'], sync.METADATA_INCLUDES)
+            self.assertGreater(sync.load_snapshot()['metadata_refreshed_at'], cached['metadata_refreshed_at'])
+            for path, content in existing.items(): self.assertEqual((root / path).read_bytes(), content)
+            # The advanced timestamp prevents another full refresh the next day.
+            api = FakeAPI([METADATA, {'recording-count': 2, 'recording-offset': 0, 'recordings': [{'id': r['id']} for r in ROWS]}, METADATA])
+            status = sync.synchronize(api, CONFIG)
+            self.assertFalse(status['metadata_refreshed'])
+            self.assertNotIn('inc', api.calls[1][0][1])
+
+    def test_explicit_refresh_overrides_recent_metadata(self):
+        with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
+            root = Path(t); (root / 'data').mkdir()
+            (root / 'data/collection.json').write_text(json.dumps(self.cached_data(ROWS)))
+            api = FakeAPI([METADATA, {'recording-count': 2, 'recording-offset': 0, 'recordings': ROWS}, METADATA])
+            with patch.object(sync, 'write_snapshot'):
+                status = sync.synchronize(api, CONFIG, refresh_metadata=True)
+            self.assertTrue(status['metadata_refreshed'])
+            self.assertEqual(api.calls[1][0][1]['inc'], sync.METADATA_INCLUDES)
+
+    def test_first_sync_fetches_all_metadata(self):
+        with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
+            api = FakeAPI([METADATA, {'recording-count': 2, 'recording-offset': 0, 'recordings': ROWS}, METADATA])
+            with patch.object(sync, 'write_snapshot') as write:
+                status = sync.synchronize(api, CONFIG)
+            self.assertTrue(status['metadata_refreshed'])
+            self.assertEqual(status['added'], 2)
+            self.assertEqual(api.calls[1][0][1]['inc'], sync.METADATA_INCLUDES)
+            self.assertTrue(write.call_args.kwargs['rebuild_exports'])
 
     def test_complete_paginated_snapshot(self):
         api = FakeAPI([METADATA, {'recording-count': 2, 'recording-offset': 0, 'recordings': ROWS[:1]}, {'recording-count': 2, 'recording-offset': 1, 'recordings': ROWS[1:]}, METADATA])

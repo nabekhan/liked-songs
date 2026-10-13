@@ -3,6 +3,11 @@ on:
   schedule:
     - cron: '23 12 * * *'
   workflow_dispatch:
+    inputs:
+      refresh_metadata:
+        description: Refresh metadata for every recording
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths: ['scripts/**', 'config.json', '.github/workflows/sync.yml', 'data/**']
@@ -27,14 +32,19 @@ jobs:
           python-version: '3.12'
       - name: Verify sync behavior
         run: python -m unittest discover -s scripts -p 'test_*.py'
-      - name: Download and verify collection
+      - name: Check collection and fetch new metadata
         if: github.event_name != 'push'
         env:
           MUSICBRAINZ_CLIENT_ID: ${{ secrets.MUSICBRAINZ_CLIENT_ID }}
           MUSICBRAINZ_CLIENT_SECRET: ${{ secrets.MUSICBRAINZ_CLIENT_SECRET }}
           MUSICBRAINZ_REFRESH_TOKEN: ${{ secrets.MUSICBRAINZ_REFRESH_TOKEN }}
-          GH_TOKEN: ${{ github.token }}
-        run: python scripts/sync.py --refresh-metadata
+          REFRESH_METADATA: ${{ inputs.refresh_metadata || false }}
+        run: |
+          args=()
+          if [ "$REFRESH_METADATA" = 'true' ]; then
+            args+=(--refresh-metadata)
+          fi
+          python scripts/sync.py "${args[@]}"
       - name: Build searchable page on code changes
         if: github.event_name == 'push'
         run: python scripts/sync.py --build-only
