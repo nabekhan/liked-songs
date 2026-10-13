@@ -1,8 +1,11 @@
 {
-  "checked_at": "2026-10-12T22:45:03.647187+00:00",
+  "checked_at": "2026-10-13T00:23:30.759363+00:00",
   "count": 14563,
-  "added": 5,
-  "removed": 5,
-  "metadata_refreshed": true,
-  "content_changed": true
+  "added": 4,
+  "removed": 4,
+  "metadata_refreshed": false,
+  "metadata_fetched": 4,
+  "metadata_reused": 14559,
+  "content_changed": true,
+  "api_requests": 153
 }
