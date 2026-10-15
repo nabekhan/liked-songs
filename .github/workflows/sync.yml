@@ -1,8 +1,8 @@
 name: Sync Liked Songs
 on:
   schedule:
-    # Sundays at 07:43 UTC, away from GitHub Actions' top-of-hour rush.
-    - cron: '43 7 * * 0'
+    # Check hourly on Sundays; the gate selects one pseudorandom hour per week.
+    - cron: '43 * * * 0'
   workflow_dispatch:
     inputs:
       refresh_metadata:
@@ -20,7 +20,27 @@ concurrency:
   group: liked-songs-sync-and-pages
   cancel-in-progress: false
 jobs:
+  schedule:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      run_sync: ${{ steps.schedule.outputs.run_sync }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/schedule_sync.py
+            /data/sync-status.json
+      - name: Check whether the weekly sync is due
+        id: schedule
+        run: python3 scripts/schedule_sync.py
   sync:
+    needs: schedule
+    if: needs.schedule.outputs.run_sync == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment:

@@ -1,5 +1,6 @@
 import csv
 import gzip
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -86,11 +87,11 @@ class SyncTests(unittest.TestCase):
             write.assert_not_called()
             for path, text in existing.items(): self.assertEqual((root / path).read_text(), text)
 
-    def test_weekly_refresh_advances_freshness_without_rebuilding_unchanged_exports(self):
+    def test_two_month_refresh_advances_freshness_without_rebuilding_unchanged_exports(self):
         with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
             root = Path(t); (root / 'data').mkdir(); (root / 'site/csv').mkdir(parents=True)
             cached = self.cached_data(ROWS)
-            cached['metadata_refreshed_at'] = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=8)).isoformat()
+            cached['metadata_refreshed_at'] = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=70)).isoformat()
             (root / 'data/collection.json').write_text(json.dumps(cached))
             existing = {'data/liked-songs.csv': b'existing-csv', 'data/liked-songs.csv.gz': b'existing-gzip', 'site/index.html': b'existing-html', 'site/csv/f.json': b'existing-download'}
             for path, content in existing.items(): (root / path).write_bytes(content)
@@ -106,6 +107,55 @@ class SyncTests(unittest.TestCase):
             status = sync.synchronize(api, CONFIG)
             self.assertFalse(status['metadata_refreshed'])
             self.assertNotIn('inc', api.calls[1][0][1])
+
+    def test_weekly_membership_check_reuses_metadata_younger_than_two_months(self):
+        with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
+            root = Path(t); (root / 'data').mkdir()
+            cached = self.cached_data(ROWS)
+            cached['metadata_refreshed_at'] = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=55)).isoformat()
+            (root / 'data/collection.json').write_text(json.dumps(cached))
+            api = FakeAPI([METADATA, {'recording-count': 2, 'recording-offset': 0, 'recordings': [{'id': r['id']} for r in ROWS]}, METADATA])
+            status = sync.synchronize(api, CONFIG)
+            self.assertFalse(status['metadata_refreshed'])
+            self.assertEqual((status['metadata_fetched'], status['metadata_reused']), (0, 2))
+            self.assertTrue(all('inc' not in args[1] for args, _ in api.calls))
+
+    def test_refresh_uses_two_calendar_months_including_month_end_and_leap_year(self):
+        for start, deadline in (
+            ('2026-01-31T12:00:00+00:00', '2026-03-31T12:00:00+00:00'),
+            ('2026-12-31T12:00:00+00:00', '2027-02-28T12:00:00+00:00'),
+            ('2023-12-31T12:00:00+00:00', '2024-02-29T12:00:00+00:00'),
+            ('2024-02-29T12:00:00+00:00', '2024-04-29T12:00:00+00:00'),
+        ):
+            refreshed_at = dt.datetime.fromisoformat(start)
+            due_at = dt.datetime.fromisoformat(deadline)
+            self.assertFalse(sync.metadata_refresh_due(refreshed_at, due_at - dt.timedelta(seconds=1)))
+            self.assertTrue(sync.metadata_refresh_due(refreshed_at, due_at))
+
+    def test_api_and_oauth_requests_include_identifying_user_agent(self):
+        config = json.loads((Path(__file__).resolve().parents[1] / 'config.json').read_text())
+        env = {'MUSICBRAINZ_CLIENT_ID': 'test-client', 'MUSICBRAINZ_CLIENT_SECRET': 'test-secret', 'MUSICBRAINZ_REFRESH_TOKEN': 'test-refresh'}
+        responses = [io.BytesIO(json.dumps({'access_token': 'test-access', 'refresh_token': 'test-refresh', 'expires_in': 3600}).encode()), io.BytesIO(b'{"id":"recording"}')]
+        with patch.dict(sync.os.environ, env), patch.object(sync.urllib.request, 'urlopen', side_effect=responses) as send, patch.object(sync.time, 'sleep'):
+            api = sync.MusicBrainz(config)
+            self.assertEqual(api.request('/ws/2/recording/recording')['id'], 'recording')
+        requests = [call.args[0] for call in send.call_args_list]
+        self.assertEqual(len(requests), 2)
+        self.assertTrue(requests[0].full_url.endswith('/oauth2/token'))
+        self.assertIsNone(requests[0].get_header('Authorization'))
+        self.assertEqual(requests[1].get_header('Authorization'), 'Bearer test-access')
+        for request in requests:
+            self.assertEqual(request.get_header('User-agent'), config['user_agent'])
+            self.assertIn('https://github.com/nabekhan/liked-songs', request.get_header('User-agent'))
+
+    def test_random_request_spacing_respects_rate_limit(self):
+        env = {'MUSICBRAINZ_CLIENT_ID': 'test-client', 'MUSICBRAINZ_CLIENT_SECRET': 'test-secret', 'MUSICBRAINZ_REFRESH_TOKEN': 'test-refresh'}
+        with patch.dict(sync.os.environ, env), patch.object(sync.random, 'uniform', side_effect=[1.1, 3.0]), patch.object(sync.time, 'monotonic', return_value=100), patch.object(sync.time, 'sleep') as sleep, patch.object(sync.urllib.request, 'urlopen', side_effect=[io.BytesIO(b'{}'), io.BytesIO(b'{}')]):
+            api = sync.MusicBrainz({'user_agent': 'TestSync/1.0 (https://example.org)'})
+            api.last_request = 100
+            api.request('/ws/2/recording/one', authenticated=False)
+            api.request('/ws/2/recording/two', authenticated=False)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1.1, 3.0])
 
     def test_explicit_refresh_overrides_recent_metadata(self):
         with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):

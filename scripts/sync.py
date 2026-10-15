@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Read a MusicBrainz recording collection and publish a complete local snapshot."""
 import argparse
+import calendar
 import csv
 import datetime as dt
 import gzip
@@ -9,6 +10,7 @@ import io
 import json
 import os
 from pathlib import Path
+import random
 import shutil
 import sys
 import tempfile
@@ -110,7 +112,7 @@ class MusicBrainz:
         if params: url += '?' + urllib.parse.urlencode(params)
         retried_auth = False
         for attempt in range(6):
-            time.sleep(max(0, 1.1 - (time.monotonic() - self.last_request)))
+            time.sleep(max(0, random.uniform(1.1, 3.0) - (time.monotonic() - self.last_request)))
             headers = {'User-Agent': self.config['user_agent'], 'Accept': 'application/json', 'Cache-Control': 'no-cache'}
             if authenticated: headers['Authorization'] = 'Bearer ' + self.auth['access_token']
             payload = None
@@ -256,6 +258,14 @@ def write_snapshot(metadata, recordings, config, rebuild_exports=True):
     print(f'Verified and saved {len(recordings):,} recordings. Membership SHA-256: {data["membership_sha256"]}')
 
 
+def metadata_refresh_due(refreshed_at, now):
+    """Refresh after two calendar months, clamping dates at month end."""
+    month = refreshed_at.month - 1 + 2
+    year, month = refreshed_at.year + month // 12, month % 12 + 1
+    day = min(refreshed_at.day, calendar.monthrange(year, month)[1])
+    return now >= refreshed_at.replace(year=year, month=month, day=day)
+
+
 def synchronize(api, config, refresh_metadata=False):
     cached_path = ROOT / 'data/collection.json'
     cached = load_snapshot() if cached_path.exists() or (ROOT / 'data/collection.json.gz').exists() else None
@@ -263,8 +273,7 @@ def synchronize(api, config, refresh_metadata=False):
         raise RuntimeError('Saved snapshot belongs to a different collection.')
     now = dt.datetime.now(dt.timezone.utc)
     refreshed_at = cached.get('metadata_refreshed_at', cached['synced_at']) if cached else None
-    age = (now - dt.datetime.fromisoformat(refreshed_at)).total_seconds() if cached else float('inf')
-    full_metadata = refresh_metadata or age >= 7 * 86400 or not cached or cached.get('metadata_includes') != METADATA_INCLUDES
+    full_metadata = refresh_metadata or not cached or metadata_refresh_due(dt.datetime.fromisoformat(refreshed_at), now) or cached.get('metadata_includes') != METADATA_INCLUDES
     metadata, current = read_collection(api, config, full_metadata=full_metadata)
     old = {r['id']: r for r in cached['recordings']} if cached else {}
     current_ids = {r['id'] for r in current}
@@ -282,7 +291,7 @@ def synchronize(api, config, refresh_metadata=False):
     changed = not cached or recordings != cached['recordings'] or metadata != cached.get('collection_metadata') or cached.get('metadata_includes') != METADATA_INCLUDES
     if changed or full_metadata:
         next_config = dict(config, metadata_refreshed_at=now.isoformat() if full_metadata else refreshed_at)
-        # An unchanged weekly refresh still advances the freshness timestamp,
+        # An unchanged metadata refresh still advances the freshness timestamp,
         # but need not rebuild the large CSV, download shards, or search page.
         write_snapshot(metadata, recordings, next_config, rebuild_exports=changed)
     else:
