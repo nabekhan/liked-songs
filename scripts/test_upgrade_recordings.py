@@ -103,12 +103,57 @@ class MatchingTests(unittest.TestCase):
         for title in ('Starboy (Remix)','Starboy (Demo)','Starboy (instrumental)','Starboy (sped up)'):
             self.assertFalse(u.identity_match(recording(title=title),richer()))
         self.assertFalse(u.identity_match(recording(disambiguation='stereo'),recording(B,disambiguation='mono')))
-        for suffix in ('Remix','Remastered','Cover'):
+        for suffix in ('Remix','Cover'):
             self.assertFalse(u.identity_match(recording(title='Song ('+suffix+')'),recording(B,title='Song ('+suffix+')')))
             self.assertTrue(u.identity_match(recording(title='Song ('+suffix+')',isrcs=['SAME']),recording(B,title='Song ('+suffix+')',isrcs=['SAME'])))
         for suffix in ('Acoustic','Radio Edit','Extended Version','Edit'):
             self.assertFalse(u.identity_match(recording(title='Song ('+suffix+')',isrcs=['SAME']),recording(B,title='Song ('+suffix+')',isrcs=['SAME'])))
             self.assertFalse(u.identity_match(recording(title='Song',isrcs=['SAME']),recording(B,title='Song ('+suffix+')',isrcs=['SAME'])))
+
+    def test_remaster_labels_do_not_split_the_same_performance(self):
+        for label in ('Remaster','Remastered','2017 Remaster','Remastered 2020','2009 Digital Remaster','Digitally Remastered','2017 Remastered Version'):
+            old=recording(title='Song ['+label+']',disambiguation=label)
+            new=recording(B,title='Song')
+            self.assertEqual(u.search_title(old),'Song')
+            self.assertEqual(u.version_context(old),'')
+            self.assertFalse(u.specific_variant(old))
+            self.assertTrue(u.identity_match(old,new))
+            self.assertTrue(u.identity_match(recording(title='Song'),dict(old,id=B)))
+        self.assertEqual(u.search_title(recording(title='Song - 2017 Remaster')),'Song')
+        self.assertEqual(u.search_title(recording(title='Remastered')),'Remastered')
+        self.assertFalse(u.identity_match(recording(title='Song [2017 Remaster]'),recording(B,title='Song',length=250000)))
+
+    def test_remaster_normalization_keeps_other_version_restrictions(self):
+        for label in ('Live','Acoustic','Radio Edit'):
+            self.assertFalse(u.identity_match(recording(title='Song'),recording(B,title='Song ('+label+') [2017 Remaster]')))
+        self.assertFalse(u.identity_match(recording(title='Song (Named Remix) [2017 Remaster]'),recording(B,title='Song')))
+        self.assertEqual(u.version_context(recording(disambiguation='Named remix; 2017 remaster')),'namedremix')
+        old=recording(title='Song (Named Remix) [2017 Remaster]')
+        new=recording(B,title='Song (Named Remix) [2020 Remaster]')
+        self.assertFalse(u.identity_match(old,new))
+        self.assertTrue(u.identity_match(dict(old,isrcs=['SAME']),dict(new,isrcs=['SAME'])))
+
+    def test_up_on_the_roof_remastered_single_can_choose_main_recording(self):
+        old=recording(title='Up on the Roof (Single Version) [2017 Remaster]',length=158580)
+        new=dict(richer(),title='Up on the Roof',length=156960,disambiguation='')
+        self.assertEqual(u.search_title(old),'Up on the Roof')
+        self.assertTrue(u.improvement(old,new))
+
+    def test_generic_seven_inch_mix_can_choose_main_but_named_mixes_stay(self):
+        old=recording(title='Song (7" mix)',disambiguation='remastered 2025',length=268990)
+        self.assertFalse(u.is_remix(old))
+        self.assertEqual(u.search_title(old),'Song')
+        self.assertTrue(u.improvement(old,dict(richer(),title='Song',length=270000)))
+        for label in ('Named radio mix','Named single mix','Named 7" mix'):
+            self.assertTrue(u.is_remix(recording(title='Song ('+label+')')))
+            self.assertFalse(u.identity_match(recording(title='Song ('+label+')'),dict(richer(),title='Song')))
+
+    def test_main_substitution_requires_documented_target_even_with_many_listens(self):
+        old=recording(title='Song (Single Version) [2017 Remaster]')
+        new=recording(B,title='Song',relations=[{'target-type':'work','work':{'id':'work'}}])
+        stats={A:{'total_listen_count':6},B:{'total_listen_count':52000}}
+        self.assertGreaterEqual(u.quality(new)-u.quality(old),3)
+        self.assertFalse(u.improvement(old,new,1,1,stats))
 
     def test_popularity_can_outweigh_fewer_releases_but_not_wrong_identity(self):
         old=recording();new=richer()

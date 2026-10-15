@@ -1,0 +1,1494 @@
+{
+  "collection_id": "4cad0217-1cbe-43ae-b148-afa5afad7625",
+  "preference": "ignore remaster labels while retaining performance and remix safeguards",
+  "policy_sha256": "ce3b3d34f4912b79642bc5b169b31e99e56391ca33cca761135ee2685c990ccc",
+  "original": {
+    "id": "0c535652-0883-4dc2-b818-2bd8ddd07973",
+    "title": "Up on the Roof (Single Version) [2017 Remaster]",
+    "artist": "The Drifters",
+    "length_ms": 158580,
+    "version": "",
+    "isrcs": [],
+    "works": [],
+    "genres": [],
+    "quality": 1.0,
+    "url": "https://musicbrainz.org/recording/0c535652-0883-4dc2-b818-2bd8ddd07973",
+    "popularity": {
+      "recording_mbid": "0c535652-0883-4dc2-b818-2bd8ddd07973",
+      "total_listen_count": 35,
+      "total_user_count": 3
+    },
+    "release_appearances": 1
+  },
+  "replacement": {
+    "id": "704268a6-6dc9-427c-8b95-89dbd49b8240",
+    "title": "Up on the Roof",
+    "artist": "The Drifters",
+    "length_ms": 156960,
+    "version": "",
+    "isrcs": [
+      "TCJPK2090706",
+      "USAT20001006"
+    ],
+    "works": [
+      "28a099b7-fd4c-3040-9d66-77a88cfb41c6"
+    ],
+    "genres": [
+      "doo-wop",
+      "motown",
+      "pop",
+      "r&b",
+      "rock",
+      "rock and roll",
+      "soul"
+    ],
+    "quality": 17,
+    "url": "https://musicbrainz.org/recording/704268a6-6dc9-427c-8b95-89dbd49b8240",
+    "popularity": {
+      "recording_mbid": "704268a6-6dc9-427c-8b95-89dbd49b8240",
+      "total_listen_count": 11,
+      "total_user_count": 1
+    },
+    "release_appearances": 160
+  },
+  "application": {
+    "collection_id": "4cad0217-1cbe-43ae-b148-afa5afad7625",
+    "owner": "nabecite",
+    "stage": "verified",
+    "started_at": "2026-10-15T09:01:34.577605+00:00",
+    "source": "0c535652-0883-4dc2-b818-2bd8ddd07973",
+    "target": "704268a6-6dc9-427c-8b95-89dbd49b8240",
+    "metadata_before": {
+      "name": "Liked Songs",
+      "type": "Recording collection",
+      "type-id": "dda5c90e-4b0b-3482-a6a9-090844e0860e",
+      "entity-type": "recording",
+      "editor": "nabecite",
+      "id": "4cad0217-1cbe-43ae-b148-afa5afad7625",
+      "recording-count": 14606
+    },
+    "policy_sha256": "f001a9d1047fed9d0175ca3fdbd77a6f5c22ffd8e0b360f9fe57ede5517d1031",
+    "target_confirmation": "valid recording accepted by API and expected collection-count change confirmed",
+    "verified_at": "2026-10-15T09:07:35.924431+00:00",
+    "concurrent_additions": [
+      "62a82163-d112-4133-9f75-2fa4f86dc3e6",
+      "af41c860-f53c-4e38-a37d-d620b0d45d7d"
+    ],
+    "concurrent_removals": [
+      "66695ed3-d04f-4284-8f06-11f922484af8",
+      "f8d3869b-30c5-4a51-8be1-c53fa90ada53"
+    ]
+  },
+  "before_count": 14606,
+  "after_count": 14606,
+  "additional_audit": {
+    "reviewed_unique": 461,
+    "affected_items": 17,
+    "audited_at": "2026-10-15T09:13:29.848024+00:00",
+    "decisions": [
+      {
+        "source": {
+          "id": "07e3952e-11c5-4eb2-94b6-77ae6264f5b1",
+          "title": "Pretty Vacant",
+          "artist": "Sex Pistols",
+          "length_ms": 196200,
+          "version": "",
+          "isrcs": [
+            "GBUM71200593",
+            "USWB17700043"
+          ],
+          "works": [
+            "acd64745-196a-344c-9e8a-0cff548fedab"
+          ],
+          "genres": [
+            "blues",
+            "pop",
+            "punk",
+            "punk rock",
+            "rock"
+          ],
+          "quality": 13.9,
+          "url": "https://musicbrainz.org/recording/07e3952e-11c5-4eb2-94b6-77ae6264f5b1",
+          "popularity": {
+            "recording_mbid": "07e3952e-11c5-4eb2-94b6-77ae6264f5b1",
+            "total_listen_count": 437671,
+            "total_user_count": 79780
+          },
+          "release_appearances": 108
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "28e69378-9e3b-42a1-ad91-3a433914958d",
+              "title": "Pretty Vacant (remastered)",
+              "artist": "Sex Pistols",
+              "length_ms": 197613,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "acd64745-196a-344c-9e8a-0cff548fedab"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/28e69378-9e3b-42a1-ad91-3a433914958d",
+              "popularity": {
+                "recording_mbid": "28e69378-9e3b-42a1-ad91-3a433914958d",
+                "total_listen_count": 2,
+                "total_user_count": 2
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "09efea4d-0b45-40ba-8da9-fe19643707cf",
+          "title": "La La Land (radio edit)",
+          "artist": "Green Velvet",
+          "length_ms": 205000,
+          "version": "",
+          "isrcs": [
+            "DEN120110390"
+          ],
+          "works": [
+            "c46a8481-2c39-39bf-a307-ad6b687b88bf"
+          ],
+          "genres": [
+            "electronic",
+            "techno"
+          ],
+          "quality": 13.3,
+          "url": "https://musicbrainz.org/recording/09efea4d-0b45-40ba-8da9-fe19643707cf",
+          "popularity": {
+            "recording_mbid": "09efea4d-0b45-40ba-8da9-fe19643707cf",
+            "total_listen_count": 36,
+            "total_user_count": 10
+          },
+          "release_appearances": 3
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "ba5e347b-8350-406f-b77f-bb01229d564f",
+              "title": "La La Land (remastered)",
+              "artist": "Green Velvet",
+              "length_ms": 320000,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 2.0,
+              "url": "https://musicbrainz.org/recording/ba5e347b-8350-406f-b77f-bb01229d564f",
+              "popularity": {
+                "recording_mbid": "ba5e347b-8350-406f-b77f-bb01229d564f",
+                "total_listen_count": null,
+                "total_user_count": null
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": false,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "0f9d3ea4-86ba-4e5f-9c6b-7843263fe243",
+          "title": "Dark Star (single version)",
+          "artist": "Grateful Dead",
+          "length_ms": 161000,
+          "version": "",
+          "isrcs": [
+            "USWB11403264",
+            "USWB11502905"
+          ],
+          "works": [
+            "bcf790b8-8b0e-4bd8-b970-912336bfa7c6"
+          ],
+          "genres": [
+            "blues rock",
+            "country rock",
+            "folk rock",
+            "pop",
+            "psychedelic rock",
+            "rock"
+          ],
+          "quality": 14.2,
+          "url": "https://musicbrainz.org/recording/0f9d3ea4-86ba-4e5f-9c6b-7843263fe243",
+          "popularity": {
+            "recording_mbid": "0f9d3ea4-86ba-4e5f-9c6b-7843263fe243",
+            "total_listen_count": 2169,
+            "total_user_count": 735
+          },
+          "release_appearances": 4
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "3c358130-cac1-4711-befc-e7cc7473de56",
+              "title": "Dark Star (remastered version)",
+              "artist": "Grateful Dead",
+              "length_ms": 163280,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "bcf790b8-8b0e-4bd8-b970-912336bfa7c6"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/3c358130-cac1-4711-befc-e7cc7473de56",
+              "popularity": {
+                "recording_mbid": "3c358130-cac1-4711-befc-e7cc7473de56",
+                "total_listen_count": 12,
+                "total_user_count": 8
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "1c4f7312-2f9f-4188-93c9-00971318f92c",
+          "title": "The House of the Rising Sun",
+          "artist": "The Animals",
+          "length_ms": 269746,
+          "version": "original UK single version",
+          "isrcs": [
+            "GBAYE0201752",
+            "GBAYE6400209",
+            "GBAYE6400318",
+            "USA176460010"
+          ],
+          "works": [
+            "bee56e45-2561-4d27-90b2-d3cfd7fb26bd"
+          ],
+          "genres": [
+            "blues",
+            "blues rock",
+            "british blues",
+            "british rhythm & blues",
+            "classic rock",
+            "folk rock",
+            "garage rock",
+            "jazz",
+            "mod",
+            "pop",
+            "pop rock",
+            "psychedelic rock",
+            "r&b",
+            "rock"
+          ],
+          "quality": 17.8,
+          "url": "https://musicbrainz.org/recording/1c4f7312-2f9f-4188-93c9-00971318f92c",
+          "popularity": {
+            "recording_mbid": "1c4f7312-2f9f-4188-93c9-00971318f92c",
+            "total_listen_count": 767650,
+            "total_user_count": 96262
+          },
+          "release_appearances": 540
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "afbc863a-4e3f-49c3-bd74-3b4b54d844d9",
+              "title": "The House of the Rising Sun (2002 remastered version)",
+              "artist": "The Animals",
+              "length_ms": null,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 1.0,
+              "url": "https://musicbrainz.org/recording/afbc863a-4e3f-49c3-bd74-3b4b54d844d9",
+              "popularity": {
+                "recording_mbid": "afbc863a-4e3f-49c3-bd74-3b4b54d844d9",
+                "total_listen_count": null,
+                "total_user_count": null
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": false,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "1ebbb2c9-30ab-4246-bb83-234c7e4e1dac",
+          "title": "Peggy Sue (single version)",
+          "artist": "Buddy Holly",
+          "length_ms": 152106,
+          "version": "",
+          "isrcs": [],
+          "works": [
+            "ae2e755f-7754-3cbc-b988-13139cbba070"
+          ],
+          "genres": [],
+          "quality": 6.0,
+          "url": "https://musicbrainz.org/recording/1ebbb2c9-30ab-4246-bb83-234c7e4e1dac",
+          "popularity": {
+            "recording_mbid": "1ebbb2c9-30ab-4246-bb83-234c7e4e1dac",
+            "total_listen_count": 1401,
+            "total_user_count": 461
+          },
+          "release_appearances": 1
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "6452b488-9d1e-46aa-9625-ab874c118115",
+              "title": "Peggy Sue (remastered)",
+              "artist": "Buddy Holly",
+              "length_ms": 149652,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 2.0,
+              "url": "https://musicbrainz.org/recording/6452b488-9d1e-46aa-9625-ab874c118115",
+              "popularity": {
+                "recording_mbid": "6452b488-9d1e-46aa-9625-ab874c118115",
+                "total_listen_count": 4,
+                "total_user_count": 2
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": false,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "2ca0a61e-28fd-4417-9ae3-1609b264dec7",
+          "title": "What Is Love (7\" mix)",
+          "artist": "Haddaway",
+          "length_ms": 268990,
+          "version": "remastered 2025",
+          "isrcs": [
+            "DELV42401319"
+          ],
+          "works": [],
+          "genres": [],
+          "quality": 6.0,
+          "url": "https://musicbrainz.org/recording/2ca0a61e-28fd-4417-9ae3-1609b264dec7",
+          "popularity": {
+            "recording_mbid": "2ca0a61e-28fd-4417-9ae3-1609b264dec7",
+            "total_listen_count": 767,
+            "total_user_count": 328
+          },
+          "release_appearances": 1
+        },
+        "outcome": "replace",
+        "replacement": {
+          "id": "22071ae8-f40f-4eab-be51-9207fb4114a9",
+          "title": "What Is Love",
+          "artist": "Haddaway",
+          "length_ms": 268893,
+          "version": "",
+          "isrcs": [
+            "DEA410500401",
+            "DEC719300059",
+            "DEG410611301"
+          ],
+          "works": [
+            "3b1f1c69-fff8-31c6-8e6b-399c23b1b760"
+          ],
+          "genres": [
+            "club",
+            "dance",
+            "dance-pop",
+            "disco",
+            "electronic",
+            "electronica",
+            "euro house",
+            "eurodance",
+            "hi-nrg",
+            "house",
+            "pop",
+            "trance"
+          ],
+          "quality": 14.8,
+          "url": "https://musicbrainz.org/recording/22071ae8-f40f-4eab-be51-9207fb4114a9",
+          "popularity": {
+            "recording_mbid": "22071ae8-f40f-4eab-be51-9207fb4114a9",
+            "total_listen_count": 597169,
+            "total_user_count": 80079
+          },
+          "release_appearances": 277
+        },
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "22071ae8-f40f-4eab-be51-9207fb4114a9",
+              "title": "What Is Love",
+              "artist": "Haddaway",
+              "length_ms": 268893,
+              "version": "",
+              "isrcs": [
+                "DEA410500401",
+                "DEC719300059",
+                "DEG410611301"
+              ],
+              "works": [
+                "3b1f1c69-fff8-31c6-8e6b-399c23b1b760"
+              ],
+              "genres": [
+                "club",
+                "dance",
+                "dance-pop",
+                "disco",
+                "electronic",
+                "electronica",
+                "euro house",
+                "eurodance",
+                "hi-nrg",
+                "house",
+                "pop",
+                "trance"
+              ],
+              "quality": 14.8,
+              "url": "https://musicbrainz.org/recording/22071ae8-f40f-4eab-be51-9207fb4114a9",
+              "popularity": {
+                "recording_mbid": "22071ae8-f40f-4eab-be51-9207fb4114a9",
+                "total_listen_count": 597169,
+                "total_user_count": 80079
+              },
+              "release_appearances": 277
+            },
+            "identity_match": true,
+            "popularity_compatible": true,
+            "work_compatible": true,
+            "improvement": true
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "46f71894-151f-4eb7-8b81-ed6f0131db01",
+          "title": "Trying to Get to You",
+          "artist": "Elvis Presley",
+          "length_ms": 119000,
+          "version": "live, 1976‐12‐31: Civic Arena, Pittsburgh, PA, USA",
+          "isrcs": [],
+          "works": [
+            "c5b4b75c-f0b5-38cf-87e5-ed3b07f80660"
+          ],
+          "genres": [],
+          "quality": 6.0,
+          "url": "https://musicbrainz.org/recording/46f71894-151f-4eb7-8b81-ed6f0131db01",
+          "popularity": {
+            "recording_mbid": "46f71894-151f-4eb7-8b81-ed6f0131db01",
+            "total_listen_count": 2540,
+            "total_user_count": 847
+          },
+          "release_appearances": null
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "7abb0af1-1182-46a8-827f-4f952aa72e51",
+              "title": "Trying To Get To You (Remastered)",
+              "artist": "Elvis Presley",
+              "length_ms": 152000,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "c5b4b75c-f0b5-38cf-87e5-ed3b07f80660"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/7abb0af1-1182-46a8-827f-4f952aa72e51",
+              "popularity": {
+                "recording_mbid": "7abb0af1-1182-46a8-827f-4f952aa72e51",
+                "total_listen_count": null,
+                "total_user_count": null
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "58d24e88-27c0-4355-8aac-6ca2ca5e30d3",
+          "title": "Love Is All Around",
+          "artist": "The Troggs",
+          "length_ms": 179000,
+          "version": "single version",
+          "isrcs": [
+            "DESK96790412",
+            "GBF086700004",
+            "USIR20000450"
+          ],
+          "works": [
+            "0e83263a-141a-3e13-ab75-23ee970d064f"
+          ],
+          "genres": [
+            "ballad",
+            "classic rock",
+            "frat rock",
+            "pop",
+            "rock"
+          ],
+          "quality": 16.0,
+          "url": "https://musicbrainz.org/recording/58d24e88-27c0-4355-8aac-6ca2ca5e30d3",
+          "popularity": {
+            "recording_mbid": "58d24e88-27c0-4355-8aac-6ca2ca5e30d3",
+            "total_listen_count": 5,
+            "total_user_count": 2
+          },
+          "release_appearances": 117
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "db352ced-942e-44a8-a668-c6e0b57d1077",
+              "title": "Love Is All Around (remastered)",
+              "artist": "The Troggs",
+              "length_ms": 134426,
+              "version": "",
+              "isrcs": [
+                "QM7282186777"
+              ],
+              "works": [],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/db352ced-942e-44a8-a668-c6e0b57d1077",
+              "popularity": {
+                "recording_mbid": "db352ced-942e-44a8-a668-c6e0b57d1077",
+                "total_listen_count": null,
+                "total_user_count": null
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": false,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "674cd2c5-0da1-4c07-ada1-f59b2a19adca",
+          "title": "I Fought the Law",
+          "artist": "The Clash",
+          "length_ms": 161000,
+          "version": "",
+          "isrcs": [
+            "GBARL1201017",
+            "GBARL1202535",
+            "GBARL1300630",
+            "GBBBN7902001",
+            "GBBBN9902206",
+            "GBBBN9902483"
+          ],
+          "works": [
+            "f4d124a8-3c74-3885-9bec-fe0be82aea98"
+          ],
+          "genres": [
+            "alternative punk",
+            "alternative rock",
+            "classic rock",
+            "dancehall",
+            "disco",
+            "dub",
+            "electronic",
+            "interview",
+            "non-music",
+            "punk",
+            "punk rock",
+            "reggae",
+            "rock",
+            "rock and roll",
+            "roots reggae"
+          ],
+          "quality": 16,
+          "url": "https://musicbrainz.org/recording/674cd2c5-0da1-4c07-ada1-f59b2a19adca",
+          "popularity": {
+            "recording_mbid": "674cd2c5-0da1-4c07-ada1-f59b2a19adca",
+            "total_listen_count": 596312,
+            "total_user_count": 88928
+          },
+          "release_appearances": 95
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "0d47d436-f575-4230-9664-90152b7b1ce0",
+              "title": "I Fought the Law (Remastered)",
+              "artist": "The Clash",
+              "length_ms": 163133,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 2.0,
+              "url": "https://musicbrainz.org/recording/0d47d436-f575-4230-9664-90152b7b1ce0",
+              "popularity": {
+                "recording_mbid": "0d47d436-f575-4230-9664-90152b7b1ce0",
+                "total_listen_count": null,
+                "total_user_count": null
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": false,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "8416995f-f94b-40ee-91d0-f2ee75a61e4f",
+          "title": "This Magic Moment (Single Version) [2003 Remaster]",
+          "artist": "The Drifters",
+          "length_ms": 149826,
+          "version": "",
+          "isrcs": [],
+          "works": [],
+          "genres": [],
+          "quality": 1.0,
+          "url": "https://musicbrainz.org/recording/8416995f-f94b-40ee-91d0-f2ee75a61e4f",
+          "popularity": {
+            "recording_mbid": "8416995f-f94b-40ee-91d0-f2ee75a61e4f",
+            "total_listen_count": 6,
+            "total_user_count": 4
+          },
+          "release_appearances": 1
+        },
+        "outcome": "replace",
+        "replacement": {
+          "id": "28479889-df25-4f7e-851e-34248e4965d4",
+          "title": "This Magic Moment",
+          "artist": "The Drifters",
+          "length_ms": 150266,
+          "version": "",
+          "isrcs": [
+            "USAT20000568"
+          ],
+          "works": [
+            "c2a9a317-984f-3169-9916-cb0770f1304c"
+          ],
+          "genres": [
+            "doo-wop",
+            "motown",
+            "pop",
+            "r&b",
+            "rock",
+            "rock and roll",
+            "soul"
+          ],
+          "quality": 15.4,
+          "url": "https://musicbrainz.org/recording/28479889-df25-4f7e-851e-34248e4965d4",
+          "popularity": {
+            "recording_mbid": "28479889-df25-4f7e-851e-34248e4965d4",
+            "total_listen_count": null,
+            "total_user_count": null
+          },
+          "release_appearances": 40
+        },
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "a0dae054-3fde-4f8a-8427-61c2efca5e3c",
+              "title": "This Magic Moment",
+              "artist": "The Drifters",
+              "length_ms": 156000,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "c2a9a317-984f-3169-9916-cb0770f1304c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/a0dae054-3fde-4f8a-8427-61c2efca5e3c",
+              "popularity": {
+                "recording_mbid": "a0dae054-3fde-4f8a-8427-61c2efca5e3c",
+                "total_listen_count": 52139,
+                "total_user_count": 11796
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": true,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "e3e92997-7ec1-4c12-9fb9-258662bde820",
+              "title": "This Magic Moment",
+              "artist": "The Drifters",
+              "length_ms": 186000,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "c2a9a317-984f-3169-9916-cb0770f1304c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/e3e92997-7ec1-4c12-9fb9-258662bde820",
+              "popularity": {
+                "recording_mbid": "e3e92997-7ec1-4c12-9fb9-258662bde820",
+                "total_listen_count": 202,
+                "total_user_count": 50
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": true,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "be48237e-87d1-4793-93ee-6e21706bf752",
+              "title": "This Magic Moment",
+              "artist": "The Drifters & Ben E. King",
+              "length_ms": 153640,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "c2a9a317-984f-3169-9916-cb0770f1304c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/be48237e-87d1-4793-93ee-6e21706bf752",
+              "popularity": {
+                "recording_mbid": "be48237e-87d1-4793-93ee-6e21706bf752",
+                "total_listen_count": 36,
+                "total_user_count": 17
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "48fec661-a99a-426e-b5e8-33f48cca2702",
+              "title": "This Magic Moment",
+              "artist": "The Drifters",
+              "length_ms": 168200,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "c2a9a317-984f-3169-9916-cb0770f1304c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/48fec661-a99a-426e-b5e8-33f48cca2702",
+              "popularity": {
+                "recording_mbid": "48fec661-a99a-426e-b5e8-33f48cca2702",
+                "total_listen_count": 6,
+                "total_user_count": 3
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "e8b222b8-893e-457f-b493-1bee2a0c24e8",
+              "title": "This Magic Moment",
+              "artist": "The Drifters feat. Ben E. King",
+              "length_ms": 145000,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "c2a9a317-984f-3169-9916-cb0770f1304c"
+              ],
+              "genres": [
+                "r&b",
+                "soul"
+              ],
+              "quality": 9.0,
+              "url": "https://musicbrainz.org/recording/e8b222b8-893e-457f-b493-1bee2a0c24e8",
+              "popularity": {
+                "recording_mbid": "e8b222b8-893e-457f-b493-1bee2a0c24e8",
+                "total_listen_count": 4,
+                "total_user_count": 2
+              },
+              "release_appearances": 2
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "4b42c08d-a46b-442a-a8e5-6f935286c6ff",
+              "title": "This Magic Moment",
+              "artist": "The Drifters with Ben E. King",
+              "length_ms": 153640,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "c2a9a317-984f-3169-9916-cb0770f1304c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/4b42c08d-a46b-442a-a8e5-6f935286c6ff",
+              "popularity": {
+                "recording_mbid": "4b42c08d-a46b-442a-a8e5-6f935286c6ff",
+                "total_listen_count": 1,
+                "total_user_count": 1
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "28479889-df25-4f7e-851e-34248e4965d4",
+              "title": "This Magic Moment",
+              "artist": "The Drifters",
+              "length_ms": 150266,
+              "version": "",
+              "isrcs": [
+                "USAT20000568"
+              ],
+              "works": [
+                "c2a9a317-984f-3169-9916-cb0770f1304c"
+              ],
+              "genres": [
+                "doo-wop",
+                "motown",
+                "pop",
+                "r&b",
+                "rock",
+                "rock and roll",
+                "soul"
+              ],
+              "quality": 15.4,
+              "url": "https://musicbrainz.org/recording/28479889-df25-4f7e-851e-34248e4965d4",
+              "popularity": {
+                "recording_mbid": "28479889-df25-4f7e-851e-34248e4965d4",
+                "total_listen_count": null,
+                "total_user_count": null
+              },
+              "release_appearances": 40
+            },
+            "identity_match": true,
+            "popularity_compatible": true,
+            "work_compatible": true,
+            "improvement": true
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "8796db6a-ff0e-4ced-9c75-721558d8a422",
+          "title": "Please Mr. Postman (single version / mono)",
+          "artist": "The Marvelettes",
+          "length_ms": 149293,
+          "version": "",
+          "isrcs": [
+            "USMO16100266"
+          ],
+          "works": [
+            "b0df7fba-26c7-33f4-9475-eeceaf61aab8"
+          ],
+          "genres": [],
+          "quality": 13.0,
+          "url": "https://musicbrainz.org/recording/8796db6a-ff0e-4ced-9c75-721558d8a422",
+          "popularity": {
+            "recording_mbid": "8796db6a-ff0e-4ced-9c75-721558d8a422",
+            "total_listen_count": 4332,
+            "total_user_count": 1254
+          },
+          "release_appearances": 7
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "2ccce83e-e194-4dcb-9322-a112c60e3cac",
+              "title": "Please Mr. Postman (Remastered)",
+              "artist": "The Marvelettes",
+              "length_ms": 150000,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 2.0,
+              "url": "https://musicbrainz.org/recording/2ccce83e-e194-4dcb-9322-a112c60e3cac",
+              "popularity": {
+                "recording_mbid": "2ccce83e-e194-4dcb-9322-a112c60e3cac",
+                "total_listen_count": 18,
+                "total_user_count": 2
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": false,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "89cba486-0970-4cc5-a003-92fbea053a81",
+          "title": "There Goes My Baby (Single Version) [2019 Remaster]",
+          "artist": "The Drifters",
+          "length_ms": 134146,
+          "version": "",
+          "isrcs": [],
+          "works": [],
+          "genres": [],
+          "quality": 1.0,
+          "url": "https://musicbrainz.org/recording/89cba486-0970-4cc5-a003-92fbea053a81",
+          "popularity": {
+            "recording_mbid": "89cba486-0970-4cc5-a003-92fbea053a81",
+            "total_listen_count": 8,
+            "total_user_count": 6
+          },
+          "release_appearances": 1
+        },
+        "outcome": "replace",
+        "replacement": {
+          "id": "631ac58d-84b0-45cb-b56b-2b0958931516",
+          "title": "There Goes My Baby",
+          "artist": "The Drifters",
+          "length_ms": 132080,
+          "version": "",
+          "isrcs": [
+            "GBAWA0512139",
+            "USEW20180238"
+          ],
+          "works": [
+            "0e456f3e-86b7-3a18-86dc-642964f8881c"
+          ],
+          "genres": [
+            "doo-wop",
+            "r&b",
+            "rock",
+            "rock and roll",
+            "soul"
+          ],
+          "quality": 15.4,
+          "url": "https://musicbrainz.org/recording/631ac58d-84b0-45cb-b56b-2b0958931516",
+          "popularity": {
+            "recording_mbid": "631ac58d-84b0-45cb-b56b-2b0958931516",
+            "total_listen_count": null,
+            "total_user_count": null
+          },
+          "release_appearances": 164
+        },
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "2ba0b01f-716a-40c0-a23f-8ea1e15e75d6",
+              "title": "There Goes My Baby",
+              "artist": "The Drifters",
+              "length_ms": 138000,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "0e456f3e-86b7-3a18-86dc-642964f8881c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/2ba0b01f-716a-40c0-a23f-8ea1e15e75d6",
+              "popularity": {
+                "recording_mbid": "2ba0b01f-716a-40c0-a23f-8ea1e15e75d6",
+                "total_listen_count": 61638,
+                "total_user_count": 17763
+              },
+              "release_appearances": 3
+            },
+            "identity_match": true,
+            "popularity_compatible": true,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "c8c34fdd-98f7-4444-bf71-4e65df076a22",
+              "title": "There Goes My Baby",
+              "artist": "The Drifters",
+              "length_ms": 135000,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "0e456f3e-86b7-3a18-86dc-642964f8881c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/c8c34fdd-98f7-4444-bf71-4e65df076a22",
+              "popularity": {
+                "recording_mbid": "c8c34fdd-98f7-4444-bf71-4e65df076a22",
+                "total_listen_count": 328,
+                "total_user_count": 67
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": true,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "0c25999a-057b-4357-ba30-663c952139fb",
+              "title": "There Goes My Baby",
+              "artist": "The Drifters",
+              "length_ms": 137000,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "0e456f3e-86b7-3a18-86dc-642964f8881c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/0c25999a-057b-4357-ba30-663c952139fb",
+              "popularity": {
+                "recording_mbid": "0c25999a-057b-4357-ba30-663c952139fb",
+                "total_listen_count": 79,
+                "total_user_count": 3
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "7e30a6ac-215c-41ec-a011-15cb1ee015f8",
+              "title": "There Goes My Baby",
+              "artist": "The Drifters",
+              "length_ms": 129000,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "0e456f3e-86b7-3a18-86dc-642964f8881c"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/7e30a6ac-215c-41ec-a011-15cb1ee015f8",
+              "popularity": {
+                "recording_mbid": "7e30a6ac-215c-41ec-a011-15cb1ee015f8",
+                "total_listen_count": 8,
+                "total_user_count": 1
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "f1266765-830b-4522-9fa9-198ee8ee19d4",
+              "title": "There Goes My Baby",
+              "artist": "The Drifters",
+              "length_ms": 129853,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 2.0,
+              "url": "https://musicbrainz.org/recording/f1266765-830b-4522-9fa9-198ee8ee19d4",
+              "popularity": {
+                "recording_mbid": "f1266765-830b-4522-9fa9-198ee8ee19d4",
+                "total_listen_count": 1,
+                "total_user_count": 1
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          },
+          {
+            "candidate": {
+              "id": "631ac58d-84b0-45cb-b56b-2b0958931516",
+              "title": "There Goes My Baby",
+              "artist": "The Drifters",
+              "length_ms": 132080,
+              "version": "",
+              "isrcs": [
+                "GBAWA0512139",
+                "USEW20180238"
+              ],
+              "works": [
+                "0e456f3e-86b7-3a18-86dc-642964f8881c"
+              ],
+              "genres": [
+                "doo-wop",
+                "r&b",
+                "rock",
+                "rock and roll",
+                "soul"
+              ],
+              "quality": 15.4,
+              "url": "https://musicbrainz.org/recording/631ac58d-84b0-45cb-b56b-2b0958931516",
+              "popularity": {
+                "recording_mbid": "631ac58d-84b0-45cb-b56b-2b0958931516",
+                "total_listen_count": null,
+                "total_user_count": null
+              },
+              "release_appearances": 164
+            },
+            "identity_match": true,
+            "popularity_compatible": true,
+            "work_compatible": true,
+            "improvement": true
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "afe026b6-ebb1-47f7-8522-c15bb55818a9",
+          "title": "I’m Waiting for the Man",
+          "artist": "The Velvet Underground & Nico",
+          "length_ms": 199000,
+          "version": "live, 1966‐11‐04: Valleydale Ballroom, Cleveland, OH, USA",
+          "isrcs": [],
+          "works": [
+            "89e6e8cc-2e4c-345b-abef-65910ce79ab5"
+          ],
+          "genres": [],
+          "quality": 5.0,
+          "url": "https://musicbrainz.org/recording/afe026b6-ebb1-47f7-8522-c15bb55818a9",
+          "popularity": {
+            "recording_mbid": "afe026b6-ebb1-47f7-8522-c15bb55818a9",
+            "total_listen_count": 4482,
+            "total_user_count": 1266
+          },
+          "release_appearances": null
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "76a56a94-32a8-457e-9470-59a0acbc7f2a",
+              "title": "I’m Waiting for the Man (2003 Remastered)",
+              "artist": "The Velvet Underground & Nico",
+              "length_ms": 276586,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "89e6e8cc-2e4c-345b-abef-65910ce79ab5"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/76a56a94-32a8-457e-9470-59a0acbc7f2a",
+              "popularity": {
+                "recording_mbid": "76a56a94-32a8-457e-9470-59a0acbc7f2a",
+                "total_listen_count": 11,
+                "total_user_count": 8
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "b0569278-4765-4683-9654-9f27fd3c4c9d",
+          "title": "Make Me Smile (Come Up and See Me)",
+          "artist": "Steve Harley",
+          "length_ms": 319000,
+          "version": "live",
+          "isrcs": [],
+          "works": [],
+          "genres": [],
+          "quality": 2.0,
+          "url": "https://musicbrainz.org/recording/b0569278-4765-4683-9654-9f27fd3c4c9d",
+          "popularity": {
+            "recording_mbid": "b0569278-4765-4683-9654-9f27fd3c4c9d",
+            "total_listen_count": 25891,
+            "total_user_count": 5327
+          },
+          "release_appearances": null
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "2709bac4-6f9d-4c51-9c05-95109fd84fb3",
+              "title": "Make Me Smile (Come up and See Me) - 2014 Remaster",
+              "artist": "Steve Harley & Cockney Rebel",
+              "length_ms": 239213,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 2.0,
+              "url": "https://musicbrainz.org/recording/2709bac4-6f9d-4c51-9c05-95109fd84fb3",
+              "popularity": {
+                "recording_mbid": "2709bac4-6f9d-4c51-9c05-95109fd84fb3",
+                "total_listen_count": 45,
+                "total_user_count": 11
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "b5e79e21-fb4f-41be-88f8-b2dff9836ae6",
+          "title": "The Young Ones",
+          "artist": "Cliff Richard & The Shadows",
+          "length_ms": 191466,
+          "version": "",
+          "isrcs": [
+            "BGAYE6100281",
+            "DEB551590013",
+            "GBAYE0001119",
+            "GBAYE0500916",
+            "GBAYE6100281",
+            "GBAYE9801602"
+          ],
+          "works": [
+            "5e2ad067-ee56-349e-9c21-a1c7c098f127"
+          ],
+          "genres": [
+            "classic rock",
+            "country",
+            "pop",
+            "pop rock",
+            "rock",
+            "rock and roll",
+            "schlager",
+            "soft rock"
+          ],
+          "quality": 16.9,
+          "url": "https://musicbrainz.org/recording/b5e79e21-fb4f-41be-88f8-b2dff9836ae6",
+          "popularity": {
+            "recording_mbid": "b5e79e21-fb4f-41be-88f8-b2dff9836ae6",
+            "total_listen_count": 20030,
+            "total_user_count": 5424
+          },
+          "release_appearances": 125
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "fbcfb084-d030-4ddc-b281-1952cfe80acf",
+              "title": "The Young Ones (2006 Remaster)",
+              "artist": "Cliff Richard & The Shadows",
+              "length_ms": 189910,
+              "version": "",
+              "isrcs": [],
+              "works": [
+                "5e2ad067-ee56-349e-9c21-a1c7c098f127"
+              ],
+              "genres": [],
+              "quality": 6.0,
+              "url": "https://musicbrainz.org/recording/fbcfb084-d030-4ddc-b281-1952cfe80acf",
+              "popularity": {
+                "recording_mbid": "fbcfb084-d030-4ddc-b281-1952cfe80acf",
+                "total_listen_count": 49,
+                "total_user_count": 23
+              },
+              "release_appearances": 2
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "eab848d8-e8b4-47e9-9398-fcbf2bba9fc7",
+          "title": "Summertime Blues",
+          "artist": "Eddie Cochran",
+          "length_ms": 118000,
+          "version": "UK single version, i.e. without echo",
+          "isrcs": [
+            "FRM031229830",
+            "GBAWA0674259",
+            "USEM30300064",
+            "USEM38500061",
+            "USUG10400087"
+          ],
+          "works": [
+            "abf54062-a8aa-31b2-96a5-a648a37f81b6"
+          ],
+          "genres": [
+            "club",
+            "country",
+            "country rock",
+            "dance",
+            "pop",
+            "rock",
+            "rock and roll",
+            "rockabilly"
+          ],
+          "quality": 14.2,
+          "url": "https://musicbrainz.org/recording/eab848d8-e8b4-47e9-9398-fcbf2bba9fc7",
+          "popularity": {
+            "recording_mbid": "eab848d8-e8b4-47e9-9398-fcbf2bba9fc7",
+            "total_listen_count": 9899,
+            "total_user_count": 2431
+          },
+          "release_appearances": 280
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "a1b9ce20-a4c1-462e-990d-bb87d9b5d7d3",
+              "title": "Summertime Blues (1999 digital remaster)",
+              "artist": "Eddie Cochran",
+              "length_ms": 117000,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 2.0,
+              "url": "https://musicbrainz.org/recording/a1b9ce20-a4c1-462e-990d-bb87d9b5d7d3",
+              "popularity": {
+                "recording_mbid": "a1b9ce20-a4c1-462e-990d-bb87d9b5d7d3",
+                "total_listen_count": 7,
+                "total_user_count": 4
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": false,
+            "improvement": false
+          }
+        ]
+      },
+      {
+        "source": {
+          "id": "f0431fd8-73c8-4186-9be0-3cf3876f968e",
+          "title": "First Time I Met the Blues (single version)",
+          "artist": "Buddy Guy",
+          "length_ms": 138507,
+          "version": "",
+          "isrcs": [
+            "USMC16048802"
+          ],
+          "works": [],
+          "genres": [],
+          "quality": 6.0,
+          "url": "https://musicbrainz.org/recording/f0431fd8-73c8-4186-9be0-3cf3876f968e",
+          "popularity": {
+            "recording_mbid": "f0431fd8-73c8-4186-9be0-3cf3876f968e",
+            "total_listen_count": 35,
+            "total_user_count": 15
+          },
+          "release_appearances": 1
+        },
+        "outcome": "retain",
+        "replacement": null,
+        "evaluated": [
+          {
+            "candidate": {
+              "id": "952a5ece-8e3e-4989-ad26-11b5e80c9e1d",
+              "title": "First Time I Met the Blues (Remastered)",
+              "artist": "Buddy Guy",
+              "length_ms": 378000,
+              "version": "",
+              "isrcs": [],
+              "works": [],
+              "genres": [],
+              "quality": 2.0,
+              "url": "https://musicbrainz.org/recording/952a5ece-8e3e-4989-ad26-11b5e80c9e1d",
+              "popularity": {
+                "recording_mbid": "952a5ece-8e3e-4989-ad26-11b5e80c9e1d",
+                "total_listen_count": null,
+                "total_user_count": null
+              },
+              "release_appearances": 1
+            },
+            "identity_match": true,
+            "popularity_compatible": false,
+            "work_compatible": true,
+            "improvement": false
+          }
+        ]
+      }
+    ],
+    "application": {
+      "collection_id": "4cad0217-1cbe-43ae-b148-afa5afad7625",
+      "owner": "nabecite",
+      "stage": "verified",
+      "started_at": "2026-10-15T09:14:14.220624+00:00",
+      "replacements": {
+        "2ca0a61e-28fd-4417-9ae3-1609b264dec7": "22071ae8-f40f-4eab-be51-9207fb4114a9",
+        "8416995f-f94b-40ee-91d0-f2ee75a61e4f": "28479889-df25-4f7e-851e-34248e4965d4",
+        "89cba486-0970-4cc5-a003-92fbea053a81": "631ac58d-84b0-45cb-b56b-2b0958931516"
+      },
+      "policy_sha256": "ce3b3d34f4912b79642bc5b169b31e99e56391ca33cca761135ee2685c990ccc",
+      "verified_at": "2026-10-15T09:20:33.122904+00:00",
+      "concurrent_additions": [],
+      "concurrent_removals": []
+    }
+  }
+}

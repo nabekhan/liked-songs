@@ -1,11 +1,11 @@
 {
-  "checked_at": "2026-10-15T08:18:33.923584+00:00",
+  "checked_at": "2026-10-15T09:20:33.122904+00:00",
   "count": 14606,
-  "added": 663,
-  "removed": 665,
+  "added": 3,
+  "removed": 3,
   "metadata_refreshed": false,
-  "metadata_fetched": 663,
-  "metadata_reused": 13943,
+  "metadata_fetched": 3,
+  "metadata_reused": 14603,
   "content_changed": true,
-  "recording_replacements": 665
+  "recording_replacements": 3
 }

@@ -25,6 +25,7 @@ import sync
 
 CACHE = sync.ROOT / '.cache/recording-audit'
 SCRIPT_SHA256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+REMASTER_LABEL = re.compile(r'\b(?:(?:19|20)\d{2}[\s-]+)?(?:digital(?:ly)?[\s-]+)?re[- ]?master(?:ed|ing)?(?:\s+(?:version|edition))?(?:\s+(?:in\s+)?(?:19|20)\d{2})?(?:\s+(?:version|edition))?\b',re.I)
 
 
 def save(path, data):
@@ -117,13 +118,27 @@ def is_edit(row):
 
 
 def is_remix(row):
-    labels = version_labels(row)
-    labels = [re.sub(r'\b(?:radio|single)\s+mix\b','',label,flags=re.I) for label in labels]
+    labels = [without_remaster(label) for label in version_labels(row)]
+    # A generic 7-inch/radio/single mix is an edit; a named mix keeps its identity.
+    labels = [label for label in labels if not re.fullmatch(r'\s*(?:radio|single|7[″\"]?)\s+mix\s*',label,re.I)]
     return any(re.search(r'\b(?:remix|mix)\b', label, re.I) for label in labels)
+
+
+def without_remaster(value):
+    return REMASTER_LABEL.sub('',value).strip(' ,;:/-–—')
 
 
 def search_title(row):
     title = row.get('title', '')
+    def clean_qualifier(match):
+        if not REMASTER_LABEL.search(match.group(2)):return match.group(0)
+        remaining=without_remaster(match.group(2))
+        return match.group(1)+remaining+match.group(3) if remaining else ' '
+    title=re.sub(r'([\[(])([^\])]+)([\])])',clean_qualifier,title)
+    suffix=re.search(r'\s+[-–—]\s+(.+)$',title)
+    if suffix and REMASTER_LABEL.search(suffix.group(1)):
+        remaining=without_remaster(suffix.group(1))
+        title=title[:suffix.start()]+(' - '+remaining if remaining else '')
     title = re.sub(r'\s*[\[(](?:explicit|clean|uncensored|censored)(?: version)?[\])]\s*', ' ', title, flags=re.I)
     title = re.sub(r'\s*[\[(](?:feat\.?|featuring)\s+[^\])]+[\])]\s*', ' ', title, flags=re.I)
     if main_substitution(row):
@@ -151,7 +166,7 @@ def audit_rows(source):
 
 
 def version_context(row):
-    text = row.get('disambiguation', '').casefold()
+    text = without_remaster(row.get('disambiguation', '')).casefold()
     # A studio session date/location describes the recording; it is not an
     # alternate mix. Keep actual mix/take/other variant labels restrictive.
     if re.match(r'^studio\b',text) and not specific_variant(row,include_performance=False):return ''
@@ -161,10 +176,10 @@ def version_context(row):
 
 
 def specific_variant(row,include_performance=True):
-    labels=version_labels(row)
+    labels=[without_remaster(label) for label in version_labels(row)]
     labels=[re.sub(r'\b(?:explicit|clean|censored|uncensored)(?:\s+version)?\b','',label,flags=re.I) for label in labels]
     labels=[re.sub(r'\b(?:original\s+)?(?:album|studio)\s+version\b','',label,flags=re.I) for label in labels]
-    pattern=r'\b(?:remix|mix|acoustic|demo|instrumental|karaoke|edit|extended|remaster(?:ed)?|version|cover|sped|slowed|nightcore|mono|stereo|alternate|take)\b'
+    pattern=r'\b(?:remix|mix|acoustic|demo|instrumental|karaoke|edit|extended|version|cover|sped|slowed|nightcore|mono|stereo|alternate|take)\b'
     return any(re.search(pattern,label,re.I) for label in labels) or (include_performance and any(set(r.get('attributes',[]))&{'instrumental','partial','medley'} for r in row.get('relations',[]) if r.get('target-type')=='work'))
 
 
@@ -212,7 +227,7 @@ def improvement(source, candidate, source_appearances=None, candidate_appearance
     if source.get('isrcs') and not candidate.get('isrcs'): return False
     if not popularity_compatible(source,candidate,popularity or {},candidate_appearances):return False
     delta = quality(candidate) - quality(source)
-    if main_replacement(source) and quality(candidate)>=8:return True
+    if main_replacement(source):return quality(candidate)>=8
     prefers_explicit = content_version(candidate) == 'explicit' and content_version(source) != 'explicit'
     much_more_widely_released=(source_appearances is not None and candidate_appearances is not None
                               and candidate_appearances>=max(5,source_appearances*3))
@@ -586,6 +601,7 @@ def plan(api, source):
         else: decision.update(outcome='ambiguous_chain')
     result = {'collection_id':source['collection_id'], 'owner':source['collection_owner'], 'source_scanned_at':source['scanned_at'], 'planned_at':dt.datetime.now(dt.timezone.utc).isoformat(), 'preference':'explicit', 'counts':dict(Counter(d['outcome'] for d in decisions)), 'decisions':decisions}
     result['preferences']={'main_studio':True,'avoid_versions':['live','acoustic','radio/single/extended edits'],'preserve_named_remixes':True,'ranking':['explicit','ListenBrainz total listens','ListenBrainz unique listeners','release appearances','metadata']}
+    result['preferences']['ignore_remaster_labels']=True
     result['preferences']['popularity_safeguards']={'ordinary_or_edit_known_source':'no decrease in listens for sources with at least 100 listens','explicit_upgrade':'at least one third of source listens','clearly_labeled_live_or_acoustic_substitution':'at least 100 listens and one tenth of substantial source listens; otherwise 100 listens or five release appearances','relationship_only_version_flags':'insufficient to change performance or relax duration'}
     result['policy_sha256']=SCRIPT_SHA256
     save(CACHE / 'plan.json', result)
