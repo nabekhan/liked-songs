@@ -148,6 +148,13 @@ class SyncTests(unittest.TestCase):
             self.assertEqual(request.get_header('User-agent'), config['user_agent'])
             self.assertIn('https://github.com/nabekhan/liked-songs', request.get_header('User-agent'))
 
+    def test_socket_read_timeout_is_retried(self):
+        env = {'MUSICBRAINZ_CLIENT_ID': 'test-client', 'MUSICBRAINZ_CLIENT_SECRET': 'test-secret', 'MUSICBRAINZ_REFRESH_TOKEN': 'test-refresh'}
+        with patch.dict(sync.os.environ, env), patch.object(sync.urllib.request, 'urlopen', side_effect=[sync.socket.timeout('read timed out'), io.BytesIO(b'{"id":"recording"}')]) as send, patch.object(sync.time, 'sleep'):
+            api = sync.MusicBrainz({'user_agent': 'TestSync/1.0 (https://example.org)'})
+            self.assertEqual(api.request('/ws/2/recording/recording', authenticated=False)['id'], 'recording')
+        self.assertEqual(send.call_count, 2)
+
     def test_random_request_spacing_respects_rate_limit(self):
         env = {'MUSICBRAINZ_CLIENT_ID': 'test-client', 'MUSICBRAINZ_CLIENT_SECRET': 'test-secret', 'MUSICBRAINZ_REFRESH_TOKEN': 'test-refresh'}
         with patch.dict(sync.os.environ, env), patch.object(sync.random, 'uniform', side_effect=[1.1, 3.0]), patch.object(sync.time, 'monotonic', return_value=100), patch.object(sync.time, 'sleep') as sleep, patch.object(sync.urllib.request, 'urlopen', side_effect=[io.BytesIO(b'{}'), io.BytesIO(b'{}')]):

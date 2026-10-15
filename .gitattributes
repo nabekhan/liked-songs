@@ -1,0 +1,2 @@
+# Preserve standard CSV CRLF record endings in downloadable audit reports.
+data/*.csv -text whitespace=cr-at-eol

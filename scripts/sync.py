@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import random
 import shutil
+import socket
 import sys
 import tempfile
 import time
@@ -131,7 +132,7 @@ class MusicBrainz:
                     raise RuntimeError(f'MusicBrainz HTTP {e.code}; snapshot left unchanged.') from None
                 delay = e.headers.get('Retry-After', '')
                 time.sleep(min(60, int(delay) if delay.isdigit() else 2 ** attempt))
-            except (urllib.error.URLError, TimeoutError):
+            except (urllib.error.URLError, TimeoutError, socket.timeout):
                 time.sleep(min(30, 2 ** attempt))
         raise RuntimeError('MusicBrainz request failed after retries; snapshot left unchanged.')
 
