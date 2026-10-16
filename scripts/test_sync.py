@@ -157,12 +157,41 @@ class SyncTests(unittest.TestCase):
 
     def test_random_request_spacing_respects_rate_limit(self):
         env = {'MUSICBRAINZ_CLIENT_ID': 'test-client', 'MUSICBRAINZ_CLIENT_SECRET': 'test-secret', 'MUSICBRAINZ_REFRESH_TOKEN': 'test-refresh'}
-        with patch.dict(sync.os.environ, env), patch.object(sync.random, 'uniform', side_effect=[1.1, 3.0]), patch.object(sync.time, 'monotonic', return_value=100), patch.object(sync.time, 'sleep') as sleep, patch.object(sync.urllib.request, 'urlopen', side_effect=[io.BytesIO(b'{}'), io.BytesIO(b'{}')]):
+        with patch.dict(sync.os.environ, env), patch.object(sync.random, 'uniform', side_effect=[1.1, 1.3]) as jitter, patch.object(sync.time, 'monotonic', return_value=100), patch.object(sync.time, 'sleep') as sleep, patch.object(sync.urllib.request, 'urlopen', side_effect=[io.BytesIO(b'{}'), io.BytesIO(b'{}')]):
             api = sync.MusicBrainz({'user_agent': 'TestSync/1.0 (https://example.org)'})
             api.last_request = 100
             api.request('/ws/2/recording/one', authenticated=False)
             api.request('/ws/2/recording/two', authenticated=False)
-        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1.1, 3.0])
+        self.assertEqual([call.args for call in jitter.call_args_list], [(1.1, 1.3), (1.1, 1.3)])
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1.1, 1.3])
+
+    def test_request_spacing_accounts_for_elapsed_response_time(self):
+        env = {'MUSICBRAINZ_CLIENT_ID': 'test-client', 'MUSICBRAINZ_CLIENT_SECRET': 'test-secret', 'MUSICBRAINZ_REFRESH_TOKEN': 'test-refresh'}
+        with patch.dict(sync.os.environ, env), patch.object(sync.random, 'uniform', return_value=1.2), patch.object(sync.time, 'monotonic', side_effect=[100, 101.2, 104, 104]), patch.object(sync.time, 'sleep') as sleep, patch.object(sync.urllib.request, 'urlopen', side_effect=[io.BytesIO(b'{}'), io.BytesIO(b'{}')]):
+            api = sync.MusicBrainz({'user_agent': 'TestSync/1.0 (https://example.org)'})
+            api.last_request = 100
+            api.request('/ws/2/recording/one', authenticated=False)
+            api.request('/ws/2/recording/two', authenticated=False)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [1.2, 0])
+
+    def test_gzip_responses_preserve_json_and_authentication(self):
+        env = {'MUSICBRAINZ_CLIENT_ID': 'test-client', 'MUSICBRAINZ_CLIENT_SECRET': 'test-secret', 'MUSICBRAINZ_REFRESH_TOKEN': 'test-refresh'}
+        token = {'access_token': 'test-access', 'refresh_token': 'test-refresh', 'expires_in': 3600}
+        recording = {'id': ROWS[0]['id'], 'title': 'Don’t Stop', 'relations': [{'work': {'title': 'Work'}}]}
+        responses = []
+        for payload in (token, recording):
+            response = io.BytesIO(gzip.compress(json.dumps(payload, ensure_ascii=False).encode('utf-8')))
+            response.headers = {'Content-Encoding': 'GZip'}
+            responses.append(response)
+        with patch.dict(sync.os.environ, env), patch.object(sync.urllib.request, 'urlopen', side_effect=responses) as send, patch.object(sync.time, 'sleep'):
+            api = sync.MusicBrainz({'user_agent': 'TestSync/1.0 (https://example.org)'})
+            self.assertEqual(api.request('/ws/2/recording/' + ROWS[0]['id']), recording)
+        self.assertEqual(api.compressed_response_count, 2)
+        self.assertEqual(api.request_count, 2)
+        requests = [call.args[0] for call in send.call_args_list]
+        self.assertTrue(all(request.get_header('Accept-encoding') == 'gzip' for request in requests))
+        self.assertIsNone(requests[0].get_header('Authorization'))
+        self.assertEqual(requests[1].get_header('Authorization'), 'Bearer test-access')
 
     def test_explicit_refresh_overrides_recent_metadata(self):
         with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
@@ -254,7 +283,8 @@ class SyncTests(unittest.TestCase):
             html = (root / 'site/index.html').read_text()
             page = json.loads(html.split('>', 1)[1].rsplit('</script>', 1)[0])
             self.assertEqual(page['csv_fields'], fields)
-            self.assertEqual(set(page['songs'][0]), set(sync.CSV_BASE_FIELDS) | {'first_release_date', 'languages'})
+            self.assertEqual(set(page['songs'][0]), (set(sync.CSV_BASE_FIELDS) - {'musicbrainz_url'}) | {'first_release_date', 'languages'})
+            self.assertEqual(row['musicbrainz_url'], 'https://musicbrainz.org/recording/' + recording['id'])
             song = next(song for song in page['songs'] if song['recording_mbid'] == recording['id'])
             self.assertEqual(song['first_release_date'], '2000-01')
             self.assertEqual(song['languages'], ['eng', 'fra'])
@@ -275,6 +305,43 @@ class SyncTests(unittest.TestCase):
             self.assertEqual(json.loads((root / 'data/collection.json').read_text())['recordings'], [recording, ROWS[1]])
             with gzip.open(root / 'data/liked-songs.csv.gz', 'rb') as compressed:
                 self.assertEqual(compressed.read(), (root / 'data/liked-songs.csv').read_bytes())
+
+    def test_exports_partition_every_recording_once(self):
+        recordings = [dict(ROWS[0], id=prefix + ROWS[0]['id'][1:], title=prefix + ',\n“é”') for prefix in '0123456789abcdef']
+        data = self.cached_data(recordings)
+        with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
+            root = Path(t); (root / 'scripts').mkdir()
+            (root / 'scripts/page.html').write_text('<!-- COLLECTION_DATA -->')
+            sync.build_exports(data)
+            flat = sync.flatten_snapshot(data)
+            combined = []
+            for prefix in '0123456789abcdef':
+                rows = json.loads((root / 'site/csv' / (prefix + '.json')).read_text())
+                self.assertEqual(rows, [row for row in flat if row['recording_mbid'].startswith(prefix)])
+                combined.extend(rows)
+            self.assertEqual(len(combined), len(recordings))
+            with gzip.open(root / 'data/liked-songs.csv.gz', 'rb') as compressed:
+                raw = compressed.read()
+            self.assertEqual(raw, (root / 'data/liked-songs.csv').read_bytes())
+            expected = io.StringIO(newline='')
+            writer = csv.DictWriter(expected, fieldnames=sync.csv_fields(flat)); writer.writeheader()
+            writer.writerows({k: sync.csv_cell(v) for k, v in row.items()} for row in flat)
+            self.assertEqual(raw, ('\ufeff' + expected.getvalue()).encode('utf-8'))
+
+    def test_failed_csv_write_keeps_previous_file(self):
+        with tempfile.TemporaryDirectory() as t:
+            path = Path(t) / 'songs.csv'; path.write_text('previous')
+            with patch.object(sync, 'csv_cell', side_effect=RuntimeError('invalid cell')):
+                with self.assertRaises(RuntimeError): sync.atomic_csv(path, [{'title': 'test'}])
+            self.assertEqual(path.read_text(), 'previous')
+            self.assertEqual(list(Path(t).iterdir()), [path])
+
+    def test_background_compression_failure_fails_build(self):
+        with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):
+            root = Path(t); (root / 'scripts').mkdir()
+            (root / 'scripts/page.html').write_text('<!-- COLLECTION_DATA -->')
+            with patch.object(sync, 'atomic_gzip_file', side_effect=OSError('disk full')):
+                with self.assertRaisesRegex(OSError, 'disk full'): sync.build_exports(self.cached_data(ROWS))
 
     def test_changed_metadata_request_forces_refresh_and_updates_snapshot(self):
         with tempfile.TemporaryDirectory() as t, patch.object(sync, 'ROOT', Path(t)):

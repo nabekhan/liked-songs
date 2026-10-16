@@ -2,11 +2,11 @@
 """Read a MusicBrainz recording collection and publish a complete local snapshot."""
 import argparse
 import calendar
+from concurrent.futures import ThreadPoolExecutor
 import csv
 import datetime as dt
 import gzip
 import hashlib
-import io
 import json
 import os
 from pathlib import Path
@@ -23,6 +23,9 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 AUTH_PATH = Path.home() / '.config/musicbrainz-liked-songs/auth.json'
 BASE = 'https://musicbrainz.org'
+# Keep a randomized safety margin above MusicBrainz's one-request-per-second limit.
+REQUEST_INTERVAL = (1.1, 1.3)
+JSON_ENCODER = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
 CSV_BASE_FIELDS = ['title', 'artist', 'recording_mbid', 'artist_mbids', 'length_ms', 'isrcs', 'work_mbids', 'works', 'disambiguation', 'video', 'musicbrainz_url']
 METADATA_INCLUDES = '+'.join([
     'artist-credits', 'isrcs', 'aliases', 'annotation', 'tags', 'genres', 'ratings',
@@ -57,6 +60,33 @@ def atomic_gzip(path, text):
         if os.path.exists(name): os.unlink(name)
 
 
+def atomic_csv(path, flat):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(dir=path.parent, prefix='.' + path.name)
+    try:
+        os.fchmod(fd, 0o644)
+        with os.fdopen(fd, 'w', encoding='utf-8', newline='') as output:
+            output.write('\ufeff')
+            writer = csv.DictWriter(output, fieldnames=csv_fields(flat))
+            writer.writeheader()
+            writer.writerows({k: csv_cell(v) for k, v in row.items()} for row in flat)
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name): os.unlink(name)
+
+
+def atomic_gzip_file(path, source):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, name = tempfile.mkstemp(dir=path.parent, prefix='.' + path.name)
+    try:
+        with os.fdopen(fd, 'wb') as output, source.open('rb') as input_file:
+            with gzip.GzipFile(filename='', mode='wb', compresslevel=6, fileobj=output, mtime=0) as compressed:
+                shutil.copyfileobj(input_file, compressed, 1024 * 1024)
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name): os.unlink(name)
+
+
 def load_snapshot():
     compressed = ROOT / 'data/collection.json.gz'
     if compressed.exists():
@@ -84,6 +114,7 @@ class MusicBrainz:
         self.config = config
         self.last_request = 0
         self.request_count = 0
+        self.compressed_response_count = 0
         env = {k: os.environ.get('MUSICBRAINZ_' + k.upper()) for k in ('client_id', 'client_secret', 'refresh_token')}
         self.from_environment = all(env.values())
         if any(env.values()) and not self.from_environment:
@@ -113,8 +144,8 @@ class MusicBrainz:
         if params: url += '?' + urllib.parse.urlencode(params)
         retried_auth = False
         for attempt in range(6):
-            time.sleep(max(0, random.uniform(1.1, 3.0) - (time.monotonic() - self.last_request)))
-            headers = {'User-Agent': self.config['user_agent'], 'Accept': 'application/json', 'Cache-Control': 'no-cache'}
+            time.sleep(max(0, random.uniform(*REQUEST_INTERVAL) - (time.monotonic() - self.last_request)))
+            headers = {'User-Agent': self.config['user_agent'], 'Accept': 'application/json', 'Accept-Encoding': 'gzip', 'Cache-Control': 'no-cache'}
             if authenticated: headers['Authorization'] = 'Bearer ' + self.auth['access_token']
             payload = None
             if body is not None:
@@ -124,7 +155,11 @@ class MusicBrainz:
             self.request_count += 1
             try:
                 with urllib.request.urlopen(urllib.request.Request(url, data=payload, headers=headers), timeout=45) as r:
-                    return json.load(r)
+                    content = r.read()
+                    if getattr(r, 'headers', {}).get('Content-Encoding', '').lower().strip() == 'gzip':
+                        content = gzip.decompress(content)
+                        self.compressed_response_count += 1
+                    return json.loads(content)
             except urllib.error.HTTPError as e:
                 if e.code == 401 and authenticated and not retried_auth:
                     retried_auth = True; self.refresh(); continue
@@ -189,7 +224,7 @@ def flatten_recording(r):
 
 
 def json_cell(value):
-    return json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+    return JSON_ENCODER.encode(value)
 
 
 def add_metadata_columns(row, prefix, objects, represented):
@@ -220,17 +255,17 @@ def flatten_snapshot(data):
 def build_exports(data=None):
     if data is None: data = load_snapshot()
     flat = flatten_snapshot(data)
-    out = io.StringIO(newline='')
-    writer = csv.DictWriter(out, fieldnames=csv_fields(flat)); writer.writeheader()
-    writer.writerows({k: csv_cell(v) for k, v in row.items()} for row in flat)
-    csv_text = '\ufeff' + out.getvalue()
-    atomic_write(ROOT / 'data/liked-songs.csv', csv_text)
-    atomic_gzip(ROOT / 'data/liked-songs.csv.gz', csv_text)
-    # Keep download metadata separate so the searchable page stays small.
-    for prefix in '0123456789abcdef':
-        rows = [row for row in flat if row['recording_mbid'].startswith(prefix)]
-        atomic_write(ROOT / 'site/csv' / (prefix + '.json'), json_cell(rows) + '\n')
-    build_page(data, flat)
+    csv_path = ROOT / 'data/liked-songs.csv'
+    atomic_csv(csv_path, flat)
+    # zlib releases the GIL, so compression can overlap the independent site build.
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        compressed = executor.submit(atomic_gzip_file, csv_path.with_suffix('.csv.gz'), csv_path)
+        chunks = {prefix: [] for prefix in '0123456789abcdef'}
+        for row in flat: chunks[row['recording_mbid'][0]].append(row)
+        for prefix, rows in chunks.items():
+            atomic_write(ROOT / 'site/csv' / (prefix + '.json'), json_cell(rows) + '\n')
+        build_page(data, flat)
+        compressed.result()
 
 
 def csv_cell(value):
@@ -300,11 +335,13 @@ def synchronize(api, config, refresh_metadata=False):
     fetched = len(recordings) if full_metadata else len(added)
     status = {'checked_at': now.isoformat(), 'count': len(recordings), 'added': len(added), 'removed': len(removed), 'metadata_refreshed': full_metadata, 'metadata_fetched': fetched, 'metadata_reused': len(recordings) - fetched, 'content_changed': changed}
     if hasattr(api, 'request_count'): status['api_requests'] = api.request_count
+    if hasattr(api, 'compressed_response_count'): status['api_compressed_responses'] = api.compressed_response_count
     for path in (ROOT / 'data/sync-status.json', ROOT / 'site/sync-status.json'):
         atomic_write(path, json.dumps(status, indent=2) + '\n')
     print(f'Changes: +{len(added)} / -{len(removed)}. Full metadata refresh: {full_metadata}')
     print(f'Expanded metadata fetched: {fetched:,}; reused: {len(recordings) - fetched:,}.')
     if 'api_requests' in status: print(f'API requests (including authentication and retries): {status["api_requests"]}')
+    if 'api_compressed_responses' in status: print(f'Gzip-compressed responses: {status["api_compressed_responses"]}')
     return status
 
 
@@ -314,7 +351,8 @@ def build_page(data=None, flat=None):
     payload = {k: data[k] for k in ('collection_id', 'collection_name', 'collection_owner', 'synced_at', 'count')}
     payload['songs'] = []
     for row in flat:
-        song = {key: row[key] for key in CSV_BASE_FIELDS}
+        # The page reconstructs this URL from the MBID; CSV exports retain it.
+        song = {key: row[key] for key in CSV_BASE_FIELDS if key != 'musicbrainz_url'}
         song['first_release_date'] = row.get('first_release_date') or ''
         languages = {code for codes in json.loads(row.get('work_languages', '[]')) if isinstance(codes, list) for code in codes if code}
         languages.update(code for code in json.loads(row.get('work_language', '[]')) if code)
