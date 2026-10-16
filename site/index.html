@@ -37,30 +37,70 @@ th:nth-child(1){width:24%}th:nth-child(2){width:17%}th:nth-child(3){width:10%}th
 <script>
 'use strict';
 const data=JSON.parse(document.getElementById('collection-data').textContent);
-const normalize=s=>String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase();
+const normalize=s=>String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u2018\u2019]/g,"'").toLocaleLowerCase();
 function nameWords(song){const words=new Set();for(const text of [song.title,song.artist]){const parts=normalize(text).match(/[\p{L}\p{N}]+/gu)||[];for(let i=0;i<parts.length;i++){words.add(parts[i]);if(i+1<parts.length)words.add(parts[i]+parts[i+1]);}words.add(parts.join(''));}return [...words].filter(w=>w.length>=3&&w.length<=50);}
 const languageNames=typeof Intl.DisplayNames==='function'?new Intl.DisplayNames(['en'],{type:'language'}):null;function language(codes){return codes.length?codes.map(code=>{if(code==='und')return 'Unknown';if(code==='zxx')return 'No language';try{return languageNames?.of(code)||code;}catch{return code;}}).join(', '):'—';}
-const songs=data.songs.map(song=>({...song,release_year:(song.first_release_date||'').match(/^-?\d{4}/)?.[0]||'',language:language(song.languages||[]),search:normalize([song.title,song.artist,song.isrcs,song.recording_mbid,song.artist_mbids,song.work_mbids,song.works,song.disambiguation,song.first_release_date,language(song.languages||[])].join(' ')),nameWords:nameWords(song)}));
-const byId=id=>document.getElementById(id);let filtered=songs,rendered=0;const initialRows=40,mobileViewport=window.matchMedia('(max-width:640px)');let timer,downloading=false;const csvChunks=new Map(),randomRanks=new Map();const sortState={key:'title',ascending:true};
+const songs=data.songs.map(song=>{const displayLanguage=language(song.languages||[]);return {...song,release_year:(song.first_release_date||'').match(/^-?\d{4}/)?.[0]||'',language:displayLanguage,search:normalize([song.title,song.artist,song.isrcs,song.recording_mbid,song.artist_mbids,song.work_mbids,song.works,song.disambiguation,song.first_release_date,displayLanguage].join(' ')),nameWords:null};});
+const byId=id=>document.getElementById(id);let filtered=songs,rendered=0,sortedSongs=null;const initialRows=40,mobileViewport=window.matchMedia('(max-width:640px)');let timer,fillFrame,downloading=false;const csvChunks=new Map(),randomRanks=new Map();const sortState={key:'title',ascending:true};
+const sortCollator=new Intl.Collator(undefined,{sensitivity:'base'}),tieCollator=new Intl.Collator();
 byId('synced').textContent=`${data.count.toLocaleString()} recordings · Updated ${new Date(data.synced_at).toLocaleString()}`;
 if(location.protocol==='https:'||location.protocol==='http:')fetch('sync-status.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(s=>{if(s)byId('synced').textContent=`${data.count.toLocaleString()} recordings · Checked ${new Date(s.checked_at).toLocaleString()}`;}).catch(()=>{});
 function tokens(query){return [...normalize(query).matchAll(/"([^"]+)"|(\S+)/g)].map(m=>m[1]||m[2]);}
 function cell(text,cls){const td=document.createElement('td');td.textContent=text;if(cls)td.className=cls;return td;}
 function length(ms){if(ms==null)return '—';const secs=Math.round(ms/1000);return `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;}
-function wordDistance(a,b,limit){if(Math.abs(a.length-b.length)>limit)return Infinity;let beforePrevious=null,previous=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const current=[i];let minimum=i;for(let j=1;j<=b.length;j++){current[j]=Math.min(previous[j]+1,current[j-1]+1,previous[j-1]+(a[i-1]===b[j-1]?0:1));if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])current[j]=Math.min(current[j],beforePrevious[j-2]+1);minimum=Math.min(minimum,current[j]);}if(minimum>limit)return Infinity;beforePrevious=previous;previous=current;}return previous[b.length]<=limit?previous[b.length]:Infinity;}
-function fuzzyTerm(term){const compact=term.replace(/[^\p{L}\p{N}]/gu,'');const precise=/\d/.test(term)||/^[a-f0-9-]{8,}$/.test(term);return {term,compact,limit:!precise&&compact.length>=4&&compact.length<=48?(compact.length>=6?2:1):0};}
-function fuzzyScore(song,terms){let score=0;for(const t of terms){if(song.search.includes(t.term))continue;if(!t.limit)return Infinity;let best=Infinity;for(const word of song.nameWords){best=Math.min(best,wordDistance(t.compact,word,t.limit));if(best===0)break;}if(!Number.isFinite(best))return Infinity;score+=best;}return score;}
-function compareSongs(a,b){const key=sortState.key,direction=sortState.ascending?1:-1;if(key==='random')return randomRanks.get(a.recording_mbid)-randomRanks.get(b.recording_mbid);let primary;if(key==='length_ms'){if(a[key]==null&&b[key]!=null)return 1;if(a[key]!=null&&b[key]==null)return -1;primary=(a[key]??0)-(b[key]??0);}else{if(key==='release_year'||key==='language'){const missing=s=>!s[key]||s[key]==='—'||(key==='language'&&s[key]==='Unknown');if(missing(a)!==missing(b))return missing(a)?1:-1;}primary=(a[key]??'').localeCompare(b[key]??'',undefined,{sensitivity:'base'});}return direction*(primary||a.title.localeCompare(b.title)||a.recording_mbid.localeCompare(b.recording_mbid));}
+function wordDistance(a,b,limit){
+  if(Math.abs(a.length-b.length)>limit)return Infinity;
+  const outside=limit+1;
+  let beforePrevious=new Uint8Array(b.length+1),previous=new Uint8Array(b.length+1),current=new Uint8Array(b.length+1);
+  previous.fill(outside);
+  for(let j=0;j<=Math.min(b.length,limit);j++)previous[j]=j;
+  for(let i=1;i<=a.length;i++){
+    current.fill(outside);
+    current[0]=Math.min(i,outside);
+    let minimum=current[0];
+    // Cells farther from the diagonal already exceed the allowed edit distance.
+    for(let j=Math.max(1,i-limit);j<=Math.min(b.length,i+limit);j++){
+      current[j]=Math.min(previous[j]+1,current[j-1]+1,previous[j-1]+(a[i-1]===b[j-1]?0:1));
+      if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])current[j]=Math.min(current[j],beforePrevious[j-2]+1);
+      minimum=Math.min(minimum,current[j]);
+    }
+    if(minimum>limit)return Infinity;
+    [beforePrevious,previous,current]=[previous,current,beforePrevious];
+  }
+  return previous[b.length]<=limit?previous[b.length]:Infinity;
+}
+function fuzzyTerm(term){const compact=term.replace(/[^\p{L}\p{N}]/gu,'');const precise=/\d/.test(term)||/^[a-f0-9-]{8,}$/.test(term);return {term,compact,limit:!precise&&compact.length>=4&&compact.length<=48?(compact.length>=6?2:1):0,distances:new Map()};}
+function fuzzyScore(song,terms){
+  let score=0;
+  for(const t of terms){
+    if(song.search.includes(t.term))continue;
+    if(!t.limit)return Infinity;
+    let best=Infinity;
+    const words=song.nameWords||(song.nameWords=nameWords(song));
+    for(const word of words){
+      if(Math.abs(t.compact.length-word.length)>t.limit)continue;
+      let distance=t.distances.get(word);
+      if(distance===undefined){distance=wordDistance(t.compact,word,t.limit);t.distances.set(word,distance);}
+      best=Math.min(best,distance);
+      if(best===0)break;
+    }
+    if(!Number.isFinite(best))return Infinity;
+    score+=best;
+  }
+  return score;
+}
+function compareSongs(a,b){const key=sortState.key,direction=sortState.ascending?1:-1;if(key==='random')return randomRanks.get(a.recording_mbid)-randomRanks.get(b.recording_mbid);let primary;if(key==='length_ms'){if(a[key]==null&&b[key]!=null)return 1;if(a[key]!=null&&b[key]==null)return -1;primary=(a[key]??0)-(b[key]??0);}else{if(key==='release_year'||key==='language'){const missing=s=>!s[key]||s[key]==='—'||(key==='language'&&s[key]==='Unknown');if(missing(a)!==missing(b))return missing(a)?1:-1;}primary=sortCollator.compare(a[key]??'',b[key]??'');}return direction*(primary||tieCollator.compare(a.title,b.title)||tieCollator.compare(a.recording_mbid,b.recording_mbid));}
 function updateSortHeaders(){byId('random').setAttribute('aria-pressed',String(sortState.key==='random'));document.querySelectorAll('th button[data-sort]').forEach(button=>{const active=button.dataset.sort===sortState.key;button.closest('th').setAttribute('aria-sort',active?(sortState.ascending?'ascending':'descending'):'none');button.querySelector('span').textContent=active?(sortState.ascending?' ↑':' ↓'):'';});}
-function randomize(){const order=songs.map(s=>s.recording_mbid);for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}randomRanks.clear();order.forEach((id,rank)=>randomRanks.set(id,rank));sortState.key='random';sortState.ascending=true;apply();}
-function apply(){const terms=tokens(byId('query').value);filtered=songs.filter(s=>terms.every(t=>s.search.includes(t)));if(terms.length&&!filtered.length){const fuzzy=terms.map(fuzzyTerm);if(fuzzy.some(t=>t.limit)){let best=Infinity;for(const song of songs){const score=fuzzyScore(song,fuzzy);if(score<best){best=score;filtered=[];}if(Number.isFinite(score)&&score===best)filtered.push(song);}}}filtered.sort(compareSongs);updateSortHeaders();rendered=0;byId('rows').replaceChildren();byId('scroll-sentinel').hidden=false;render(mobileViewport.matches?initialRows:filtered.length);fillViewport();}
+function randomize(){const order=songs.map(s=>s.recording_mbid);for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}randomRanks.clear();order.forEach((id,rank)=>randomRanks.set(id,rank));sortState.key='random';sortState.ascending=true;sortedSongs=null;apply();}
+function apply(){const terms=tokens(byId('query').value),ordered=sortedSongs||(sortedSongs=songs.slice().sort(compareSongs));filtered=terms.length?ordered.filter(s=>terms.every(t=>s.search.includes(t))):ordered;if(terms.length&&!filtered.length){const fuzzy=terms.map(fuzzyTerm);if(fuzzy.some(t=>t.limit)){let best=Infinity;for(const song of ordered){const score=fuzzyScore(song,fuzzy);if(score<best){best=score;filtered=[];}if(Number.isFinite(score)&&score===best)filtered.push(song);}}}updateSortHeaders();rendered=0;byId('rows').replaceChildren();byId('scroll-sentinel').hidden=false;render(mobileViewport.matches?initialRows:filtered.length);fillViewport();}
 function render(count=1){const rows=byId('rows');const end=Math.min(rendered+count,filtered.length);const fragment=document.createDocumentFragment();for(const s of filtered.slice(rendered,end)){const tr=document.createElement('tr'),title=cell('');const a=document.createElement('a');a.href=`https://musicbrainz.org/recording/${s.recording_mbid}`;a.textContent=s.title;a.className='song';a.target='_blank';a.rel='noopener';title.append(a);if(s.disambiguation||s.video){const note=document.createElement('div');note.className='detail';note.textContent=[s.disambiguation,s.video?'Video':''].filter(Boolean).join(' · ');title.append(note);}tr.append(title,cell(s.artist),cell(length(s.length_ms),'time'),cell(s.release_year||'—','time'),cell(s.language));const ids=cell('','identifiers');const mb=document.createElement('div');mb.className='id';mb.textContent='MBID: '+s.recording_mbid;ids.append(mb);if(s.isrcs){const isrc=document.createElement('div');isrc.className='detail';isrc.textContent=`ISRC: ${s.isrcs}`;ids.append(isrc);}tr.append(ids);const youtube=cell('','youtube'),search=document.createElement('a');search.href=`https://www.youtube.com/results?search_query=${encodeURIComponent([s.artist,s.title].filter(Boolean).join(' '))}`;search.textContent='Search';search.setAttribute('aria-label',`Search YouTube for ${s.title} by ${s.artist} (opens in a new tab)`);search.target='_blank';search.rel='noopener noreferrer';youtube.append(search);tr.append(youtube);fragment.append(tr);}rows.append(fragment);rendered=end;if(!filtered.length&&!rows.children.length){const tr=document.createElement('tr'),td=cell('No songs match. Try fewer words or another spelling.','empty');td.colSpan=7;tr.append(td);rows.append(tr);}byId('scroll-sentinel').hidden=rendered>=filtered.length;byId('download').disabled=downloading||!filtered.length;}
-byId('query').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(apply,120);});document.querySelectorAll('th button[data-sort]').forEach(button=>button.addEventListener('click',()=>{if(sortState.key===button.dataset.sort)sortState.ascending=!sortState.ascending;else{sortState.key=button.dataset.sort;sortState.ascending=true;}apply();}));
+byId('query').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(apply,120);});document.querySelectorAll('th button[data-sort]').forEach(button=>button.addEventListener('click',()=>{if(sortState.key===button.dataset.sort)sortState.ascending=!sortState.ascending;else{sortState.key=button.dataset.sort;sortState.ascending=true;}sortedSongs=null;apply();}));
 byId('random').addEventListener('click',randomize);
 byId('download').addEventListener('click',async()=>{const selected=filtered.slice(),button=byId('download'),status=byId('download-status');downloading=true;button.disabled=true;button.textContent='Preparing CSV…';status.hidden=true;try{const prefixes=[...new Set(selected.map(s=>s.recording_mbid[0]))];await Promise.all(prefixes.map(async prefix=>{if(csvChunks.has(prefix))return;const response=await fetch(`csv/${prefix}.json`,{cache:'no-store'});if(!response.ok)throw new Error('Download unavailable');const rows=await response.json();csvChunks.set(prefix,new Map(rows.map(row=>[row.recording_mbid,row])));}));const rows=selected.map(s=>csvChunks.get(s.recording_mbid[0]).get(s.recording_mbid));if(rows.some(row=>!row))throw new Error('Snapshot changed');const keys=data.csv_fields;const quote=v=>{let text=String(v??'');if(/^[=+@\-\t\r\n]/.test(text))text="'"+text;return '"'+text.replaceAll('"','""')+'"';};const parts=['\ufeff'+keys.map(quote).join(',')];for(const row of rows)parts.push('\r\n'+keys.map(k=>quote(row[k])).join(','));const url=URL.createObjectURL(new Blob(parts,{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='liked-songs-search.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{status.textContent='Couldn’t download the CSV. Reload the page and try again.';status.hidden=false;}finally{downloading=false;button.disabled=!filtered.length;button.textContent='Download CSV';}});
-function fillViewport(){if(!mobileViewport.matches)return;while(rendered<filtered.length&&document.documentElement.getBoundingClientRect().bottom<=document.documentElement.clientHeight+100)render();}
-window.addEventListener('scroll',fillViewport,{passive:true});
-window.addEventListener('resize',fillViewport);
+function fillViewport(){if(!mobileViewport.matches)return;while(rendered<filtered.length&&document.documentElement.getBoundingClientRect().bottom<=document.documentElement.clientHeight+100)render(initialRows);}
+function scheduleViewportFill(){if(!mobileViewport.matches||fillFrame)return;fillFrame=requestAnimationFrame(()=>{fillFrame=null;fillViewport();});}
+window.addEventListener('scroll',scheduleViewportFill,{passive:true});
+window.addEventListener('resize',scheduleViewportFill);
 mobileViewport.addEventListener('change',apply);
 apply();
 </script></body></html>
