@@ -17,7 +17,11 @@ class BuildSiteTests(unittest.TestCase):
         (self.root / "scripts/page.html").write_text(
             '<script id="collection-data" type="application/json"><!-- COLLECTION_DATA --></script>'
         )
-        self.payload = {"count": 2, "songs": [{"recording_mbid": "one"}, {"recording_mbid": "two"}]}
+        song = {key: '' for key in build_site.SONG_TEXT_FIELDS}
+        song.update(video=False, length_ms=None, languages=[])
+        self.payload = {"count": 2, "songs": [dict(song, recording_mbid='one'), dict(song, recording_mbid='two')],
+                        'collection_id': 'collection', 'collection_name': 'Songs', 'collection_owner': 'owner',
+                        'synced_at': '2026-10-16T00:00:00+00:00', 'csv_fields': build_site.sync.CSV_BASE_FIELDS}
         encoded = json.dumps(self.payload, separators=(",", ":")).replace("<", "\\u003c")
         (self.root / "site/index.html").write_text(
             f'<script id="collection-data" type="application/json">{encoded}</script>'
@@ -91,6 +95,19 @@ class BuildSiteTests(unittest.TestCase):
                 (self.root / 'site/index.html').write_text(
                     '<script id="collection-data" type="application/json">' + json.dumps(payload) + '</script>')
                 self.assertIsNone(build_site.collection_payload())
+
+    def test_incomplete_display_or_csv_payload_falls_back(self):
+        for kind in ('missing title', 'invalid languages', 'missing csv fields'):
+            payload = json.loads(json.dumps(self.payload))
+            if kind == 'missing title': del payload['songs'][0]['title']
+            elif kind == 'invalid languages': payload['songs'][0]['languages'] = 'eng'
+            else: del payload['csv_fields']
+            with self.subTest(kind=kind):
+                (self.root / 'site/index.html').write_text(
+                    '<script id="collection-data" type="application/json">' + json.dumps(payload) + '</script>')
+                with patch.object(build_site, 'changed_paths', return_value={'scripts/page.html'}), patch.object(build_site.sync, 'build_exports') as full:
+                    self.assertEqual(build_site.build('a' * 40), 'full')
+                full.assert_called_once_with()
 
     def test_real_git_compares_committed_and_uncommitted_site_changes(self):
         build_site.git('init', check=True)

@@ -17,6 +17,7 @@ SCRIPT_PATTERN = re.compile(
     r'<script id="collection-data" type="application/json">(.*?)</script>', re.DOTALL
 )
 SHA_PATTERN = re.compile(r"[0-9a-f]{40}")
+SONG_TEXT_FIELDS = set(sync.CSV_BASE_FIELDS) - {'length_ms', 'video', 'musicbrainz_url'} | {'first_release_date'}
 
 
 def git(*args, check=False):
@@ -64,6 +65,18 @@ def collection_payload():
         return None
     if not isinstance(songs, list) or type(count) is not int or count != len(songs):
         return None
+    if any(not isinstance(payload.get(key), str) for key in ('collection_id', 'collection_name', 'collection_owner', 'synced_at')):
+        return None
+    fields = payload.get('csv_fields')
+    if not isinstance(fields, list) or not all(isinstance(field, str) for field in fields) or not set(sync.CSV_BASE_FIELDS) <= set(fields):
+        return None
+    for song in songs:
+        if not isinstance(song, dict) or any(not isinstance(song.get(key), str) for key in SONG_TEXT_FIELDS):
+            return None
+        if type(song.get('video')) is not bool or (song.get('length_ms') is not None and type(song['length_ms']) is not int):
+            return None
+        if not isinstance(song.get('languages'), list) or any(not isinstance(code, str) for code in song['languages']):
+            return None
     ids = [song.get("recording_mbid") for song in songs if isinstance(song, dict)]
     if any(not isinstance(recording_id, str) or not recording_id for recording_id in ids):
         return None
