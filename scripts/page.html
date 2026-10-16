@@ -13,7 +13,7 @@ input[type=search]{box-sizing:border-box;flex:1;min-width:0;font:inherit;padding
 .toolbar{display:flex;align-items:center;gap:8px;margin:1em 0}
 button{font:inherit;flex-shrink:0}
 th button{border:0;background:none;padding:0;color:inherit;cursor:pointer;white-space:nowrap}
-.table-wrap{overflow-x:auto}
+.table-wrap{overflow-x:auto;overflow-anchor:none}
 table{width:100%;min-width:720px;border-collapse:collapse;table-layout:fixed}
 th,td{text-align:left;vertical-align:top;padding:8px 6px;border-bottom:1px solid #ddd;overflow-wrap:anywhere}
 th:nth-child(1){width:24%}th:nth-child(2){width:17%}th:nth-child(3){width:10%}th:nth-child(4){width:8%}th:nth-child(5){width:13%}th:nth-child(6){width:16%}th:nth-child(7){width:12%}
@@ -22,7 +22,7 @@ th:nth-child(1){width:24%}th:nth-child(2){width:17%}th:nth-child(3){width:10%}th
 .id{font:12px/1.6 monospace;overflow-wrap:anywhere}
 .time{white-space:nowrap}
 .empty{text-align:center;padding:24px}
-#scroll-sentinel{overflow-anchor:none}
+.spacer td{padding:0;border:0;line-height:0}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media(max-width:640px){body{margin:20px auto;font-size:16px}.toolbar{flex-wrap:wrap}.toolbar input[type=search]{flex-basis:100%}.identifiers{display:none}table{min-width:660px}th:nth-child(1){width:27%}th:nth-child(2){width:20%}th:nth-child(3){width:11%}th:nth-child(4){width:10%}th:nth-child(5){width:17%}th:nth-child(7){width:15%}}
 </style>
@@ -32,7 +32,6 @@ th:nth-child(1){width:24%}th:nth-child(2){width:17%}th:nth-child(3){width:10%}th
 <div class="toolbar"><input id="query" type="search" aria-label="Search songs" placeholder="Song, artist, ISRC, or MusicBrainz ID…" autocomplete="off" spellcheck="false"><button id="random" type="button" aria-label="Random sort" aria-pressed="false" title="Select again to reshuffle">Random</button><button id="download" type="button">Download CSV</button></div>
 <p id="download-status" role="status" hidden></p>
 <div class="table-wrap"><table><thead><tr><th scope="col" aria-sort="ascending"><button type="button" data-sort="title">Song<span aria-hidden="true"> ↑</span></button></th><th scope="col" aria-sort="none"><button type="button" data-sort="artist">Artist<span aria-hidden="true"></span></button></th><th scope="col" aria-sort="none"><button type="button" data-sort="length_ms">Length<span aria-hidden="true"></span></button></th><th scope="col" aria-sort="none"><button type="button" data-sort="release_year" title="Year of first release">Year<span aria-hidden="true"></span></button></th><th scope="col" aria-sort="none"><button type="button" data-sort="language" title="Language of the linked work">Language<span aria-hidden="true"></span></button></th><th scope="col" class="identifiers" aria-sort="none"><button type="button" data-sort="recording_mbid" title="Sort by recording MBID">Identifiers<span aria-hidden="true"></span></button></th><th scope="col" class="youtube">YouTube</th></tr></thead><tbody id="rows"></tbody></table></div>
-<div id="scroll-sentinel" aria-hidden="true" style="height:1px"></div>
 </main><script id="collection-data" type="application/json"><!-- COLLECTION_DATA --></script>
 <script>
 'use strict';
@@ -41,7 +40,7 @@ const normalize=s=>String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,''
 function nameWords(song){const words=new Set();for(const text of [song.title,song.artist]){const parts=normalize(text).match(/[\p{L}\p{N}]+/gu)||[];for(let i=0;i<parts.length;i++){words.add(parts[i]);if(i+1<parts.length)words.add(parts[i]+parts[i+1]);}words.add(parts.join(''));}return [...words].filter(w=>w.length>=3&&w.length<=50);}
 const languageNames=typeof Intl.DisplayNames==='function'?new Intl.DisplayNames(['en'],{type:'language'}):null;function language(codes){return codes.length?codes.map(code=>{if(code==='und')return 'Unknown';if(code==='zxx')return 'No language';try{return languageNames?.of(code)||code;}catch{return code;}}).join(', '):'—';}
 const songs=data.songs.map(song=>{const displayLanguage=language(song.languages||[]);return {...song,release_year:(song.first_release_date||'').match(/^-?\d{4}/)?.[0]||'',language:displayLanguage,search:normalize([song.title,song.artist,song.isrcs,song.recording_mbid,song.artist_mbids,song.work_mbids,song.works,song.disambiguation,song.first_release_date,displayLanguage].join(' ')),nameWords:null};});
-const byId=id=>document.getElementById(id);let filtered=songs,rendered=0,sortedSongs=null;const initialRows=40;let timer,fillFrame,downloading=false;const csvChunks=new Map(),randomRanks=new Map(),rowCache=new Map();const sortState={key:'title',ascending:true};
+const byId=id=>document.getElementById(id);let filtered=songs,sortedSongs=null;const initialRows=40;let timer,fillFrame,downloading=false;const csvChunks=new Map(),randomRanks=new Map(),rowCache=new Map();const sortState={key:'title',ascending:true};
 const sortCollator=new Intl.Collator(undefined,{sensitivity:'base'}),tieCollator=new Intl.Collator();
 byId('synced').textContent=`${data.count.toLocaleString()} recordings · Updated ${new Date(data.synced_at).toLocaleString()}`;
 if(location.protocol==='https:'||location.protocol==='http:')fetch('sync-status.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(s=>{if(s)byId('synced').textContent=`${data.count.toLocaleString()} recordings · Checked ${new Date(s.checked_at).toLocaleString()}`;}).catch(()=>{});
@@ -92,14 +91,59 @@ function fuzzyScore(song,terms){
 function compareSongs(a,b){const key=sortState.key,direction=sortState.ascending?1:-1;if(key==='random')return randomRanks.get(a.recording_mbid)-randomRanks.get(b.recording_mbid);let primary;if(key==='length_ms'){if(a[key]==null&&b[key]!=null)return 1;if(a[key]!=null&&b[key]==null)return -1;primary=(a[key]??0)-(b[key]??0);}else{if(key==='release_year'||key==='language'){const missing=s=>!s[key]||s[key]==='—'||(key==='language'&&s[key]==='Unknown');if(missing(a)!==missing(b))return missing(a)?1:-1;}primary=sortCollator.compare(a[key]??'',b[key]??'');}return direction*(primary||tieCollator.compare(a.title,b.title)||tieCollator.compare(a.recording_mbid,b.recording_mbid));}
 function updateSortHeaders(){byId('random').setAttribute('aria-pressed',String(sortState.key==='random'));document.querySelectorAll('th button[data-sort]').forEach(button=>{const active=button.dataset.sort===sortState.key;button.closest('th').setAttribute('aria-sort',active?(sortState.ascending?'ascending':'descending'):'none');button.querySelector('span').textContent=active?(sortState.ascending?' ↑':' ↓'):'';});}
 function randomize(){const order=songs.map(s=>s.recording_mbid);for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}randomRanks.clear();order.forEach((id,rank)=>randomRanks.set(id,rank));sortState.key='random';sortState.ascending=true;sortedSongs=null;apply();}
-function apply(){const terms=tokens(byId('query').value),ordered=sortedSongs||(sortedSongs=songs.slice().sort(compareSongs));filtered=terms.length?ordered.filter(s=>terms.every(t=>s.search.includes(t))):ordered;if(terms.length&&!filtered.length){const fuzzy=terms.map(fuzzyTerm);if(fuzzy.some(t=>t.limit)){let best=Infinity;for(const song of ordered){const score=fuzzyScore(song,fuzzy);if(score<best){best=score;filtered=[];}if(Number.isFinite(score)&&score===best)filtered.push(song);}}}updateSortHeaders();rendered=0;byId('rows').replaceChildren();byId('scroll-sentinel').hidden=false;render(initialRows);fillViewport();}
+function apply(){const terms=tokens(byId('query').value),ordered=sortedSongs||(sortedSongs=songs.slice().sort(compareSongs));filtered=terms.length?ordered.filter(s=>terms.every(t=>s.search.includes(t))):ordered;if(terms.length&&!filtered.length){const fuzzy=terms.map(fuzzyTerm);if(fuzzy.some(t=>t.limit)){let best=Infinity;for(const song of ordered){const score=fuzzyScore(song,fuzzy);if(score<best){best=score;filtered=[];}if(Number.isFinite(score)&&score===best)filtered.push(song);}}}updateSortHeaders();resetTable();}
 function songRow(s){let tr=rowCache.get(s.recording_mbid);if(tr)return tr;tr=document.createElement('tr');const title=cell('');const a=document.createElement('a');a.href=`https://musicbrainz.org/recording/${s.recording_mbid}`;a.textContent=s.title;a.className='song';a.target='_blank';a.rel='noopener';title.append(a);if(s.disambiguation||s.video){const note=document.createElement('div');note.className='detail';note.textContent=[s.disambiguation,s.video?'Video':''].filter(Boolean).join(' · ');title.append(note);}tr.append(title,cell(s.artist),cell(length(s.length_ms),'time'),cell(s.release_year||'—','time'),cell(s.language));const ids=cell('','identifiers');const mb=document.createElement('div');mb.className='id';mb.textContent='MBID: '+s.recording_mbid;ids.append(mb);if(s.isrcs){const isrc=document.createElement('div');isrc.className='detail';isrc.textContent=`ISRC: ${s.isrcs}`;ids.append(isrc);}tr.append(ids);const youtube=cell('','youtube'),search=document.createElement('a');search.href=`https://www.youtube.com/results?search_query=${encodeURIComponent([s.artist,s.title].filter(Boolean).join(' '))}`;search.textContent='Search';search.setAttribute('aria-label',`Search YouTube for ${s.title} by ${s.artist} (opens in a new tab)`);search.target='_blank';search.rel='noopener noreferrer';youtube.append(search);tr.append(youtube);rowCache.set(s.recording_mbid,tr);return tr;}
-function render(count=1){const rows=byId('rows');const end=Math.min(rendered+count,filtered.length);const fragment=document.createDocumentFragment();for(const s of filtered.slice(rendered,end)){fragment.append(songRow(s));}rows.append(fragment);rendered=end;if(!filtered.length&&!rows.children.length){const tr=document.createElement('tr'),td=cell('No songs match. Try fewer words or another spelling.','empty');td.colSpan=7;tr.append(td);rows.append(tr);}byId('scroll-sentinel').hidden=rendered>=filtered.length;byId('download').disabled=downloading||!filtered.length;}
+
 byId('query').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(apply,120);});document.querySelectorAll('th button[data-sort]').forEach(button=>button.addEventListener('click',()=>{if(sortState.key===button.dataset.sort)sortState.ascending=!sortState.ascending;else{sortState.key=button.dataset.sort;sortState.ascending=true;}sortedSongs=null;apply();}));
 byId('random').addEventListener('click',randomize);
 byId('download').addEventListener('click',async()=>{const selected=filtered.slice(),button=byId('download'),status=byId('download-status');downloading=true;button.disabled=true;button.textContent='Preparing CSV…';status.hidden=true;try{const prefixes=[...new Set(selected.map(s=>s.recording_mbid[0]))];let next=0,failure;const workers=Array.from({length:Math.min(3,prefixes.length)},async()=>{while(next<prefixes.length&&!failure){const prefix=prefixes[next++];if(csvChunks.has(prefix))continue;try{const response=await fetch(`csv/${prefix}.json`,{cache:'no-store'});if(!response.ok)throw new Error('Download unavailable');const rows=await response.json();csvChunks.set(prefix,new Map(rows.map(row=>[row.recording_mbid,row])));}catch(error){failure=error;}}});await Promise.all(workers);if(failure)throw failure;const rows=selected.map(s=>csvChunks.get(s.recording_mbid[0]).get(s.recording_mbid));if(rows.some(row=>!row))throw new Error('Snapshot changed');const keys=data.csv_fields;const quote=v=>{let text=String(v??'');if(/^[=+@\-\t\r\n]/.test(text))text="'"+text;return '"'+text.replaceAll('"','""')+'"';};const parts=['\ufeff'+keys.map(quote).join(',')];for(const row of rows)parts.push('\r\n'+keys.map(k=>quote(row[k])).join(','));const url=URL.createObjectURL(new Blob(parts,{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='liked-songs-search.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{status.textContent='Couldn’t download the CSV. Reload the page and try again.';status.hidden=false;}finally{downloading=false;button.disabled=!filtered.length;button.textContent='Download CSV';}});
-function fillViewport(){while(rendered<filtered.length&&document.documentElement.getBoundingClientRect().bottom<=document.documentElement.clientHeight+100)render(initialRows);}
-function scheduleViewportFill(){if(fillFrame)return;fillFrame=requestAnimationFrame(()=>{fillFrame=null;fillViewport();});}
+// ROW_HEIGHTS_START
+// Prefix sums keep row lookup and measured-height corrections logarithmic.
+class RowHeights{
+  constructor(count,estimate){this.count=count;this.values=new Float64Array(count).fill(estimate);this.tree=new Float64Array(count+1);for(let i=1;i<=count;i++)this.tree[i]=estimate*(i&-i);}
+  prefix(end){let sum=0;for(let i=end;i>0;i-=i&-i)sum+=this.tree[i];return sum;}
+  get total(){return this.prefix(this.count);}
+  set(index,height){const delta=height-this.values[index];this.values[index]=height;for(let i=index+1;i<=this.count;i+=i&-i)this.tree[i]+=delta;}
+  rowAt(offset){if(!this.count)return 0;let index=0,sum=0,step=1;while(step*2<=this.count)step*=2;for(;step;step>>=1){const next=index+step;if(next<=this.count&&sum+this.tree[next]<=offset){sum+=this.tree[next];index=next;}}return Math.min(index,this.count-1);}
+}
+// ROW_HEIGHTS_END
+const measuredHeights=new Map(),overscanRows=20,smallTableLimit=200;
+let heights=new RowHeights(0,64),rowEstimate=64,estimateReady=false,windowStart=-1,windowEnd=-1,layoutKey='';
+function spacer(){const tr=document.createElement('tr'),td=document.createElement('td');tr.className='spacer';tr.setAttribute('aria-hidden','true');td.colSpan=7;tr.append(td);return tr;}
+function setSpacer(row,height){row.hidden=height<=0;row.firstChild.style.height=`${Math.max(0,height)}px`;}
+function tableTop(){return byId('rows').getBoundingClientRect().top+window.scrollY;}
+function currentLayout(){return `${byId('rows').closest('table').getBoundingClientRect().width}:${getComputedStyle(document.body).fontSize}`;}
+function buildHeights(){const index=new RowHeights(filtered.length,rowEstimate);filtered.forEach((song,i)=>{const height=measuredHeights.get(song.recording_mbid);if(height!==undefined)index.set(i,height);});return index;}
+function scrollAnchor(){const top=tableTop(),offset=Math.max(0,window.scrollY-top),index=heights.rowAt(offset);return {index,offset:offset-heights.prefix(index),above:window.scrollY<top,absolute:window.scrollY,bottom:window.scrollY>0&&window.scrollY+innerHeight>=document.documentElement.scrollHeight-2};}
+function resetTable(){const nextLayout=currentLayout();if(nextLayout!==layoutKey){measuredHeights.clear();rowEstimate=64;estimateReady=false;}layoutKey=nextLayout;heights=buildHeights();windowStart=windowEnd=-1;renderWindow({index:0,offset:0,above:true,absolute:0,bottom:false});}
+function renderWindow(anchor=scrollAnchor()){
+  const rows=byId('rows'),count=filtered.length,position=heights.prefix(anchor.index)+anchor.offset;
+  const start=count<=smallTableLimit?0:Math.max(0,heights.rowAt(position)-overscanRows);
+  const end=count<=smallTableLimit?count:Math.min(count,Math.max(start+initialRows,heights.rowAt(position+innerHeight)+overscanRows+1));
+  if(start===windowStart&&end===windowEnd)return;
+  const focused=rows.contains(document.activeElement)?document.activeElement:null,fragment=document.createDocumentFragment(),visible=[],padding=[];
+  const indexes=Array.from({length:end-start},(_,i)=>start+i),focusedIndex=focused?Number(focused.closest('tr').getAttribute('aria-rowindex'))-2:-1;
+  // Retain a focused row even when a scrollbar drag moves it outside the window.
+  if(focusedIndex>=0&&focusedIndex<count&&(focusedIndex<start||focusedIndex>=end))indexes.push(focusedIndex);
+  indexes.sort((a,b)=>a-b);let previous=0;
+  const addPadding=(from,to)=>{if(to<=from)return;const row=spacer();setSpacer(row,heights.prefix(to)-heights.prefix(from));padding.push({row,from,to});fragment.append(row);};
+  for(const i of indexes){addPadding(previous,i);const row=songRow(filtered[i]);row.setAttribute('aria-rowindex',String(i+2));visible.push(row);fragment.append(row);previous=i+1;}
+  addPadding(previous,count);rows.replaceChildren(fragment);windowStart=start;windowEnd=end;
+  if(!count){const tr=document.createElement('tr'),td=cell('No songs match. Try fewer words or another spelling.','empty');td.colSpan=7;tr.append(td);rows.append(tr);}
+  const sizes=visible.map(row=>row.getBoundingClientRect().height);
+  sizes.forEach((height,i)=>measuredHeights.set(filtered[indexes[i]].recording_mbid,height));
+  if(!estimateReady&&sizes.length){rowEstimate=sizes.reduce((sum,height)=>sum+height,0)/sizes.length;estimateReady=true;heights=buildHeights();}
+  else sizes.forEach((height,i)=>heights.set(indexes[i],height));
+  for(const {row,from,to} of padding)setSpacer(row,heights.prefix(to)-heights.prefix(from));
+  rows.closest('table').setAttribute('aria-rowcount',String(count+1));byId('download').disabled=downloading||!count;
+  // Keep the same song at the same screen position as estimates become measurements.
+  const target=anchor.above?anchor.absolute:anchor.bottom?document.documentElement.scrollHeight-innerHeight:tableTop()+heights.prefix(anchor.index)+anchor.offset;
+  if(Math.abs(window.scrollY-target)>0.5)window.scrollTo(0,target);
+  if(focused?.isConnected)focused.focus({preventScroll:true});
+  for(const [id,row] of rowCache){if(rowCache.size<=300)break;if(!row.isConnected)rowCache.delete(id);}
+}
+function scheduleViewportFill(){if(fillFrame)return;fillFrame=requestAnimationFrame(()=>{fillFrame=null;const nextLayout=currentLayout();if(nextLayout!==layoutKey){const anchor=scrollAnchor();layoutKey=nextLayout;measuredHeights.clear();rowEstimate=64;estimateReady=false;heights=buildHeights();windowStart=windowEnd=-1;renderWindow(anchor);}else renderWindow();});}
+byId('rows').addEventListener('keydown',event=>{if(event.key!=='Tab'||event.altKey||event.ctrlKey||event.metaKey)return;const link=event.target.closest('a'),row=link?.closest('tr');if(!row||!row.hasAttribute('aria-rowindex'))return;const index=Number(row.getAttribute('aria-rowindex'))-2,links=[...row.querySelectorAll('a')],next=index*2+links.indexOf(link)+(event.shiftKey?-1:1),targetIndex=Math.floor(next/2);if(next<0||targetIndex>=filtered.length)return;const target=rowCache.get(filtered[targetIndex].recording_mbid);if(target?.isConnected)return;event.preventDefault();renderWindow({index:targetIndex,offset:0,above:false,absolute:0,bottom:false});songRow(filtered[targetIndex]).querySelectorAll('a')[next%2].focus({preventScroll:true});});
 window.addEventListener('scroll',scheduleViewportFill,{passive:true});
 window.addEventListener('resize',scheduleViewportFill);
 apply();

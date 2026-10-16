@@ -53,6 +53,8 @@ jobs:
           python-version: '3.12'
       - name: Verify sync behavior
         run: python -m unittest discover -s scripts -p 'test_*.py'
+      - name: Verify variable-height table scrolling
+        run: node --test scripts/test_table_window.mjs
       - name: Check collection and fetch new metadata
         if: github.event_name != 'push'
         env:
