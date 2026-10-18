@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-10-16T07:29:38.444178+00:00",
-  "count": 14733,
-  "added": 132,
-  "removed": 9,
+  "checked_at": "2026-10-18T19:40:48.607859+00:00",
+  "count": 14734,
+  "added": 4,
+  "removed": 3,
   "metadata_refreshed": false,
-  "metadata_fetched": 132,
-  "metadata_reused": 14601,
+  "metadata_fetched": 4,
+  "metadata_reused": 14730,
   "content_changed": true,
-  "api_requests": 302,
-  "api_compressed_responses": 280
+  "api_requests": 180,
+  "api_compressed_responses": 152
 }
