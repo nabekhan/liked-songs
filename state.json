@@ -14785,12 +14785,12 @@
     "fffce99e-3108-481d-93c3-7bddc0007e55"
   ],
   "source_snapshot_sha": "4a835e1b50b6ab9476df73fc826c98067acb9b53",
-  "checked_at": "2026-11-17T04:48:59.807418+00:00",
+  "checked_at": "2026-11-17T06:22:29.828100+00:00",
   "last_run": {
     "additions": 14779,
     "removals": 0,
-    "applied": 0,
-    "pending": 14779,
+    "applied": 14779,
+    "pending": 0,
     "dry_run": false
   }
 }
