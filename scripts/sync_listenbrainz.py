@@ -2,6 +2,8 @@
 """Mirror a verified MusicBrainz collection to ListenBrainz loves (dry-run by default)."""
 import argparse
 import datetime as dt
+import gzip
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -51,6 +53,19 @@ def load_state(path, config):
         raise ValueError('ListenBrainz state belongs to a different collection/account or schema.')
     recording_ids(state['managed_recording_mbids'])
     return state
+
+
+def snapshot_ids(path, config):
+    opener = gzip.open if path.suffix == '.gz' else open
+    with opener(path, 'rt', encoding='utf-8') as source:
+        snapshot = json.load(source)
+    if snapshot.get('collection_id') != config['collection_id'] or snapshot.get('collection_owner') != config['owner']:
+        raise ValueError('Collection snapshot belongs to a different collection/account.')
+    ids = recording_ids([row['id'] for row in snapshot['recordings']])
+    digest = hashlib.sha256('\n'.join(sorted(ids)).encode()).hexdigest()
+    if snapshot.get('count') != len(ids) or snapshot.get('membership_sha256') != digest:
+        raise ValueError('Collection snapshot count/checksum mismatch; refusing feedback changes.')
+    return sorted(ids)
 
 
 class ListenBrainz:
@@ -191,6 +206,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true', help='Write feedback; default only reports the plan.')
     parser.add_argument('--state', type=Path, default=ROOT / '.cache/listenbrainz-state.json')
+    parser.add_argument('--snapshot', type=Path, help='Use the collection snapshot verified by the weekly workflow.')
     parser.add_argument('--max-writes', type=int, default=5000)
     parser.add_argument('--budget-seconds', type=int, default=1800)
     parser.add_argument('--publish-state', action='store_true', help='Checkpoint to the dedicated Git branch (GitHub Actions).')
@@ -199,11 +215,14 @@ def main():
         parser.error('Write limit and budget must be positive.')
     config = json.loads((ROOT / 'config.json').read_text())
     state = load_state(args.state, config)
-    # This performs the existing count, offset, identity, and uniqueness checks.
-    # No expanded metadata, site builds, or existing cached snapshots are changed.
-    _, rows = read_collection(MusicBrainz(config), config, full_metadata=False)
+    if args.snapshot:
+        desired = snapshot_ids(args.snapshot, config)
+    else:
+        # Local previews can still read live membership without expanded metadata.
+        _, rows = read_collection(MusicBrainz(config), config, full_metadata=False)
+        desired = [row['id'] for row in rows]
     api = ListenBrainz(config, os.environ.get('LISTENBRAINZ_TOKEN'), args.budget_seconds)
-    result = reconcile(api, config, [row['id'] for row in rows], state,
+    result = reconcile(api, config, desired, state,
                        lambda value: atomic_write(args.state, json.dumps(value, indent=2) + '\n'),
                        apply=args.apply, max_writes=args.max_writes,
                        publish=(lambda: subprocess.run(['bash', str(ROOT / 'scripts/publish_listenbrainz_state.sh'),

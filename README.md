@@ -44,17 +44,20 @@ MusicBrainz, run `python3 scripts/build_site.py --build`.
 
 ## MusicBrainz → ListenBrainz loves (disabled until enabled)
 
-`Sync ListenBrainz Loves` is a separate, opt-in GitHub Actions workflow. It has
+ListenBrainz runs as an opt-in follow-up job in the existing `Sync Liked Songs`
+workflow, on its weekly Sunday 03:43 UTC schedule and manual collection syncs.
+There is no additional schedule. While `LISTENBRAINZ_SYNC_ENABLED` is unset,
+the follow-up job is skipped unless a manual read-only preview is requested.
+Merging the code does not enable ListenBrainz writes. The ListenBrainz job has
 no Pages deployment steps and does not modify the website or its snapshots.
-While `LISTENBRAINZ_SYNC_ENABLED` is unset, scheduled runs and manual apply runs
-are skipped. Merging the code does not enable ListenBrainz writes.
 
 ### What it does
 
-1. Every hour at minute 17, read the **live** recording collection in `config.json`
-   using the existing MusicBrainz OAuth credentials. Download membership only,
-   without expanded recording metadata or artwork. Verify collection identity,
-   page offsets, counts, and unique recording MBIDs before planning any changes.
+1. Wait for the existing collection sync to succeed, then check out the exact
+   commit containing its verified snapshot. Read membership from that snapshot,
+   checking collection identity, unique MBIDs, count, and membership checksum.
+   This avoids a second MusicBrainz scan or separate OAuth requests. Push-only
+   website builds do not run the ListenBrainz job.
 2. Read the user's current ListenBrainz feedback, in pages of 1,000 without
    metadata. Compare recording MBIDs directly; no title/artist guessing occurs.
 3. Love collection members that are not already loved (`score: 1`). First-time
@@ -64,8 +67,7 @@ are skipped. Merging the code does not enable ListenBrainz writes.
    on removed entries are preserved. Existing collection members are always
    loved, even if manually unliked or hated in ListenBrainz between runs.
 5. Save ownership/progress to `state.json` on the dedicated
-   `listenbrainz-sync-state` branch. This is separate from the weekly site's
-   sync and does not push `main`. Intended ownership is committed **before**
+   `listenbrainz-sync-state` branch. This does not push `main`. Intended ownership is committed **before**
    feedback writes, and progress again afterward, including on API failures.
 
 The MusicBrainz owner is also the default ListenBrainz username. Set
@@ -93,11 +95,12 @@ After cleanup and review, future activation requires:
 
 1. Add repository Actions secret `LISTENBRAINZ_TOKEN` for the configured user.
    Reuse the three existing `MUSICBRAINZ_*` secrets; nothing is hard-coded.
-2. Optionally run **Actions → Sync ListenBrainz Loves → Run workflow** with
-   **apply** unchecked for a read-only preview against the durable checkpoint.
+2. Optionally run **Actions → Sync Liked Songs → Run workflow** with
+   **preview_listenbrainz** checked for a read-only ListenBrainz preview against
+   the durable checkpoint. The collection/website steps still run normally.
 3. Set repository Actions variable `LISTENBRAINZ_SYNC_ENABLED` to `true`.
-   Scheduled runs then apply changes; a manual run writes only if **apply** is
-   checked. Unset the variable to pause future writes.
+   Weekly and manual collection syncs then also apply ListenBrainz changes,
+   unless **preview_listenbrainz** is checked. Unset the variable to pause writes.
 
 Local writes, when deliberately requested, use `LISTENBRAINZ_TOKEN` in the
 environment plus `--apply`. Preserve the local state file between runs. The
@@ -107,14 +110,15 @@ go into state files or committed configuration.
 
 ### Limits and recovery
 
-- **Polling, not instant events.** Changes normally appear on the next hourly
-  run; GitHub scheduling can be delayed. Reading this approximately 15,000-song
-  collection takes around three minutes at MusicBrainz's one-request-per-second
-  limit. The weekly website sync is independent and may display an older list.
+- **Weekly, not instant events.** Changes appear after the next successful
+  weekly collection sync, or a manual run. GitHub can delay schedules. The
+  ListenBrainz job uses that run's exact verified collection snapshot and does
+  not rescan MusicBrainz. A failed collection/website job blocks the follow-up.
 - **Initial backfill is slow.** ListenBrainz accepts one feedback item per write.
   Each run applies up to 5,000 changes within a 30-minute ListenBrainz budget,
   with retry/backoff and server rate-limit headers. Large backfills span several
-  hourly runs. The job has a 45-minute overall timeout; later runs reconcile
+  weekly or manual runs. For the initial backfill, extra manual runs avoid
+  waiting several weeks. The job has a 45-minute overall timeout; later runs reconcile
   actual target feedback and resume. A final in-flight request may exceed the
   30-minute budget by its 30-second network timeout.
 - **Collection membership is authoritative for managed loves.** Removing and

@@ -139,6 +139,22 @@ class ReconcileTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 lb.load_state(path, CONFIG)
 
+    def test_weekly_snapshot_checks_identity_count_checksum_and_compression(self):
+        snapshot = {'collection_id': CONFIG['collection_id'], 'collection_owner': CONFIG['owner'],
+                    'recordings': [{'id': B}, {'id': A}], 'count': 2,
+                    'membership_sha256': lb.hashlib.sha256((A + '\n' + B).encode()).hexdigest()}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'collection.json.gz'
+            with lb.gzip.open(path, 'wt', encoding='utf-8') as output:
+                json.dump(snapshot, output)
+            self.assertEqual(lb.snapshot_ids(path, CONFIG), [A, B])
+            for changes in ({'count': 1}, {'membership_sha256': 'bad'},
+                            {'collection_owner': 'someone-else'}, {'recordings': [{'id': A}, {'id': A}]}):
+                path = Path(directory) / 'collection.json'
+                path.write_text(json.dumps(dict(snapshot, **changes)))
+                with self.assertRaises(ValueError):
+                    lb.snapshot_ids(path, CONFIG)
+
 
 class APIBehaviorTests(unittest.TestCase):
     def api(self):

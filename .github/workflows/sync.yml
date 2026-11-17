@@ -9,6 +9,10 @@ on:
         description: Refresh metadata for every recording
         type: boolean
         default: false
+      preview_listenbrainz:
+        description: Preview ListenBrainz changes without applying them
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths: ['scripts/**', 'config.json', '.github/workflows/sync.yml', 'data/**']
@@ -21,6 +25,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   sync:
+    outputs:
+      snapshot_sha: ${{ steps.snapshot.outputs.sha }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment:
@@ -65,6 +71,9 @@ jobs:
             git commit -m 'Sync MusicBrainz Liked Songs'
             git push
           fi
+      - name: Record verified snapshot commit
+        id: snapshot
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Check whether Pages changed after sync
         id: pages
         env:
@@ -82,3 +91,47 @@ jobs:
         id: deployment
         if: steps.pages.outputs.publish == 'true'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+  listenbrainz:
+    needs: sync
+    # Use the same weekly/manual run, only after collection sync succeeds.
+    # Writes stay disabled until explicitly enabled after cleanup and review.
+    if: >-
+      github.event_name != 'push' &&
+      (vars.LISTENBRAINZ_SYNC_ENABLED == 'true' ||
+       (github.event_name == 'workflow_dispatch' && inputs.preview_listenbrainz == true))
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.sync.outputs.snapshot_sha }}
+          sparse-checkout: |
+            scripts
+            data
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Load durable ownership checkpoint
+        shell: bash
+        run: |
+          mkdir -p .cache
+          # Network errors must fail here, never masquerade as a first run.
+          git ls-remote origin refs/heads/listenbrainz-sync-state > .cache/listenbrainz-remote-state
+          if [ -s .cache/listenbrainz-remote-state ]; then
+            git fetch --no-tags origin refs/heads/listenbrainz-sync-state
+            git rev-parse FETCH_HEAD > .cache/listenbrainz-state-parent
+            git show FETCH_HEAD:state.json > .cache/listenbrainz-state.json
+          fi
+      - name: Sync verified collection to ListenBrainz
+        env:
+          LISTENBRAINZ_TOKEN: ${{ secrets.LISTENBRAINZ_TOKEN }}
+          APPLY: ${{ vars.LISTENBRAINZ_SYNC_ENABLED == 'true' && inputs.preview_listenbrainz != true }}
+        shell: bash
+        run: |
+          args=()
+          if [ "$APPLY" = 'true' ]; then
+            args+=(--apply --publish-state)
+          fi
+          python scripts/sync_listenbrainz.py --snapshot data/collection.json.gz "${args[@]}"
