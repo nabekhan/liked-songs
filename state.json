@@ -8421,7 +8421,6 @@
     "92f79308-7ff0-4af2-af9d-a03ba459b8d0",
     "92f9470f-3f2b-4fc3-b1fe-aef0bd121741",
     "93001859-aad8-44c3-95fa-453a5bc695da",
-    "930357c4-1757-4362-8b3f-553ded1bc6d2",
     "93036a0a-0513-4d27-b384-4a5d9b674a37",
     "9309fa33-4d20-4ce2-93c5-083c74690e03",
     "930cb068-c06f-44ea-97df-c60723ebd8df",
@@ -13999,7 +13998,6 @@
     "f2b0150a-808d-4fb5-bbbd-277960147763",
     "f2b1a950-7feb-494f-a312-4bc64aba866e",
     "f2b24170-cb22-4ba9-a108-e02110654108",
-    "f2ba0813-37de-44fc-bba6-024d2ea7dc3b",
     "f2ba8d3a-4331-4088-a87a-cb4884cfcc03",
     "f2bac73d-2ab8-41b9-a811-cad5c3deabbb",
     "f2c5ffce-6dc2-4fa4-95c0-9b8bf08c9d79",
@@ -14800,12 +14798,12 @@
     "fffce99e-3108-481d-93c3-7bddc0007e55"
   ],
   "source_snapshot_sha": "4a835e1b50b6ab9476df73fc826c98067acb9b53",
-  "checked_at": "2026-11-17T07:34:42.226865+00:00",
+  "checked_at": "2026-11-17T07:34:51.473060+00:00",
   "last_run": {
     "additions": 15,
     "removals": 2,
-    "applied": 0,
-    "pending": 17,
+    "applied": 17,
+    "pending": 0,
     "dry_run": false
   }
 }
