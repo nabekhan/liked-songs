@@ -9257,7 +9257,6 @@
     "a0f79846-a2f6-42cb-b058-5c1151b0d13d",
     "a0fababb-17b2-4ace-92d5-8530019462e1",
     "a104418f-f6a1-4f72-acad-e654d7f3c222",
-    "a105dba3-a35b-464f-8f46-b18c21c13809",
     "a108318f-ac54-4e54-90a6-b2ba129390c7",
     "a11045f3-7976-49fa-810a-c651e2767148",
     "a12b914e-ba7a-41c1-b885-c828627ed7b4",
@@ -13582,7 +13581,6 @@
     "eb881d41-172f-4ec6-8378-f75d5b125b22",
     "eb982ab8-8800-4e09-839a-35aa937e5495",
     "eb9b9ba8-6cd4-4621-a1b9-50fdcc9b6e41",
-    "eb9ec6cd-fede-4183-a943-edcddd36ad3d",
     "eba16503-0cf0-4659-a6ac-8ac465ecb3e0",
     "eba21a9d-6640-4d7c-aa8a-21305c842be1",
     "eba446a0-87cf-41e0-bf09-a887e4c8dbb6",
@@ -14248,7 +14246,6 @@
     "f69bb801-845f-4bee-afe4-19d344643981",
     "f69d98a6-7212-4041-a4af-59da03945918",
     "f69fb6a4-d965-4d6c-b5b1-3f1f90f74820",
-    "f6a467ca-7d26-4348-96b1-9d1813d7df3b",
     "f6af2c06-8b25-4fe6-aae3-348df571770b",
     "f6b018ad-e78d-4884-934a-ceec0e6485f5",
     "f6b0d094-f2c3-476c-b4cc-f354cb377929",
@@ -14802,12 +14799,12 @@
     "fffce99e-3108-481d-93c3-7bddc0007e55"
   ],
   "source_snapshot_sha": "4a835e1b50b6ab9476df73fc826c98067acb9b53",
-  "checked_at": "2026-11-22T12:06:18.782831+00:00",
+  "checked_at": "2026-11-22T12:06:22.644094+00:00",
   "last_run": {
     "additions": 4,
     "removals": 3,
-    "applied": 0,
-    "pending": 7,
+    "applied": 7,
+    "pending": 0,
     "dry_run": false
   }
 }
