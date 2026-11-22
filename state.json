@@ -4605,6 +4605,7 @@
     "51e5281b-7a03-4384-b51b-b915a09de3a0",
     "51e56798-1613-48ed-a156-0a4f38bfae8c",
     "51e89bdb-f43b-4638-b51e-ad7d7cc5c3c2",
+    "51e9df5e-ce99-4d2c-a786-05c7fe991223",
     "51ff9de3-58a1-453c-85b1-59165c3d03ce",
     "5200a67b-5822-47c8-940c-670ce79cb65d",
     "5200da4d-2b42-4001-afbd-ec9ebd544179",
@@ -6182,6 +6183,7 @@
     "6d020de2-e372-49ea-ab7b-80a3ddd6fc2c",
     "6d0c463d-1598-4b0e-b14a-13cf6ab5fc2a",
     "6d0ff872-4955-47c7-b517-9aff8b807f28",
+    "6d16de5a-af52-48a4-99bb-e98c0a615379",
     "6d1743ed-c529-48e5-a5d5-764c10930145",
     "6d19aaa7-1eb5-4488-a54d-fe07d0621a7f",
     "6d1ddf89-7839-4b3c-a1f4-6a5b8e49911b",
@@ -6922,6 +6924,7 @@
     "7a3a960e-7e07-41df-823e-f456daba9909",
     "7a3ffa1c-b71f-41cf-8013-df8e732e7596",
     "7a450bab-7469-41a1-a443-0984b3c23872",
+    "7a537793-1196-4c44-94ed-2c80c9334c60",
     "7a55e1f7-c6e8-4eab-8f67-ce213064bdd0",
     "7a57d87b-4df9-4171-ad0d-2f426046ebeb",
     "7a5a9c37-4d80-4d1d-b20f-3996be8d7eaa",
@@ -11943,6 +11946,7 @@
     "cfbe4902-9589-4ef0-8c6c-f58b721addb3",
     "cfc00462-3d92-4e1e-8e64-edd59b67bbd4",
     "cfc21fc2-bf16-4d48-ad38-a53dfa267ac7",
+    "cfc4f459-8ce8-46d5-9633-3c6e3e8d7217",
     "cfc54c2b-c330-4444-bad3-f9232594be8b",
     "cfd21b16-9a21-4270-a53e-fcaa9ebd9918",
     "cfd4014b-f261-467f-9c00-66f649c54d7c",
@@ -14798,12 +14802,12 @@
     "fffce99e-3108-481d-93c3-7bddc0007e55"
   ],
   "source_snapshot_sha": "4a835e1b50b6ab9476df73fc826c98067acb9b53",
-  "checked_at": "2026-11-17T07:34:51.473060+00:00",
+  "checked_at": "2026-11-22T12:06:18.782831+00:00",
   "last_run": {
-    "additions": 15,
-    "removals": 2,
-    "applied": 17,
-    "pending": 0,
+    "additions": 4,
+    "removals": 3,
+    "applied": 0,
+    "pending": 7,
     "dry_run": false
   }
 }
